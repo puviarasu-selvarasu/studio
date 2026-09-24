@@ -1,0 +1,112 @@
+# ============================================================
+# Python
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================================
+# IDEs
+# ============================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============================================================
+# Environment / secrets
+# ============================================================
+
+.env
+.env.*
+!.env.example
+
+# ============================================================
+# Studio generated data
+# ============================================================
+
+funlearn/data/*
+funlearn/output/*
+
+# Keep directory structure
+!funlearn/data/.gitkeep
+!funlearn/output/.gitkeep
+
+# Generated animation/render artifacts
+*.blend1
+*.blend2
+*.wav
+*.mp3
+*.ogg
+*.mp4
+*.mkv
+*.avi
+*.mov
+
+# Render sequences
+renders/
+render/
+frames/
+proxy_renders/
+
+# Temporary generated images
+generated/
+cache/
+tmp/
+temp/
+
+# ============================================================
+# Blender
+# ============================================================
+
+.blender/
+*.blend1
+*.blend2
+
+# ============================================================
+# Logs
+# ============================================================
+
+*.log
+logs/
+
+# ============================================================
+# OS
+# ============================================================
+
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ============================================================
+# Build / temporary files
+# ============================================================
+
+*.tmp
+*.temp
+*.bak
+*.swp
