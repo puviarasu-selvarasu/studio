@@ -29,24 +29,3 @@ class AnimationScene:
     scene_id: str
     duration_seconds: float
     characters: tuple[CharacterAnimation, ...] = field(default_factory=tuple)
-
-
-@dataclass(frozen=True)
-class LessonScene:
-    """Describe a content scene before animation is resolved."""
-
-    scene_id: str
-    narration: str
-    visual_description: str
-    duration_seconds: float
-
-
-@dataclass(frozen=True)
-class Lesson:
-    """Represent a generated educational lesson."""
-
-    title: str
-    topic: str
-    target_age: int
-    language: str
-    scenes: tuple[LessonScene, ...] = field(default_factory=tuple)
