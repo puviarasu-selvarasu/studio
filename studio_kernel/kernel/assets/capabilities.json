@@ -1,0 +1,13 @@
+{
+  "characters": {
+    "momo": {
+      "actions": [
+        "idle",
+        "blink",
+        "wave",
+        "walk",
+        "talk"
+      ]
+    }
+  }
+}
