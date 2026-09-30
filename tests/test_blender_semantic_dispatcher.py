@@ -70,22 +70,22 @@ def test_compile_real_ai_plan_to_frames() -> None:
         (
             "idle",
             1,
-            24,
+            23,
         ),
         (
             "turn_head",
             25,
-            12,
+            11,
         ),
         (
             "wave",
             37,
-            12,
+            11,
         ),
         (
             "step_forward",
             49,
-            24,
+            23,
         ),
     )
 
@@ -143,7 +143,7 @@ def test_execute_calls_only_explicit_trusted_functions() -> None:
             {
                 "armature_name": "StudioShotRig",
                 "start_frame": 1,
-                "duration_frames": 24,
+                "duration_frames": 23,
             },
         ),
         (
@@ -151,7 +151,7 @@ def test_execute_calls_only_explicit_trusted_functions() -> None:
             {
                 "armature_name": "StudioShotRig",
                 "start_frame": 25,
-                "duration_frames": 12,
+                "duration_frames": 11,
                 "direction": "right",
             },
         ),
@@ -160,7 +160,7 @@ def test_execute_calls_only_explicit_trusted_functions() -> None:
             {
                 "armature_name": "StudioShotRig",
                 "start_frame": 37,
-                "duration_frames": 12,
+                "duration_frames": 11,
                 "side": "L",
             },
         ),
@@ -169,7 +169,7 @@ def test_execute_calls_only_explicit_trusted_functions() -> None:
             {
                 "armature_name": "StudioShotRig",
                 "start_frame": 49,
-                "duration_frames": 24,
+                "duration_frames": 23,
                 "distance": 0.75,
             },
         ),

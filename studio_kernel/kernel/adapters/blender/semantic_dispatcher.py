@@ -45,7 +45,6 @@ class BlenderActionCommand:
         return (
             self.start_frame
             + self.duration_frames
-            - 1
         )
 
 
@@ -60,14 +59,14 @@ def _seconds_to_start_frame(
     ) + 1
 
 
-def _seconds_to_duration_frames(
+def _seconds_to_timeline_frame(
     seconds: float,
     fps: int,
 ) -> int:
-    """Convert positive duration seconds into deterministic frames."""
+    """Convert seconds into a deterministic zero-based timeline frame."""
 
     return max(
-        1,
+        0,
         floor(
             seconds * fps
             + 0.5
@@ -108,7 +107,7 @@ def compile_animation_scene(
 
     timeline_end = max(
         1,
-        _seconds_to_duration_frames(
+        _seconds_to_timeline_frame(
             scene.duration_seconds,
             fps,
         ),
@@ -128,11 +127,16 @@ def compile_animation_scene(
             fps,
         )
 
-        duration_frames = (
-            _seconds_to_duration_frames(
-                animation_action.duration_seconds,
-                fps,
-            )
+        action_end_frame = _seconds_to_timeline_frame(
+            animation_action.start_seconds
+            + animation_action.duration_seconds,
+            fps,
+        )
+
+        duration_frames = max(
+            0,
+            action_end_frame
+            - start_frame,
         )
 
         if animation_action.action == "idle":

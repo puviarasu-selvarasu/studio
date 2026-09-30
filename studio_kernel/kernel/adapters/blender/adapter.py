@@ -207,3 +207,120 @@ class BlenderAdapter:
             preview_path=preview_path,
             stdout=combined_output,
         )
+
+    def create_ai_shot(
+        self,
+        animation_ir_path: Path,
+        output_directory: Path,
+    ) -> BlenderShotResult:
+        """Execute trusted Animation IR in headless Blender."""
+
+        if not self._blender_executable.is_file():
+            raise BlenderAdapterError(
+                f"Blender executable does not exist: "
+                f"{self._blender_executable}"
+            )
+
+        animation_ir_path = animation_ir_path.resolve()
+
+        if not animation_ir_path.is_file():
+            raise BlenderAdapterError(
+                f"Animation IR file does not exist: "
+                f"{animation_ir_path}"
+            )
+
+        output_directory = output_directory.resolve()
+
+        output_directory.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        blend_path = (
+            output_directory
+            / "ai_shot.blend"
+        )
+
+        preview_path = (
+            output_directory
+            / "ai_preview.png"
+        )
+
+        script_path = Path(__file__).with_name(
+            "ai_shot.py"
+        ).resolve()
+
+        command = [
+            str(self._blender_executable),
+            "--background",
+            "--factory-startup",
+            "--python",
+            str(script_path),
+            "--",
+            str(blend_path),
+            str(preview_path),
+            str(animation_ir_path),
+        ]
+
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=self._timeout_seconds,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise BlenderAdapterError(
+                "AI-controlled Blender shot timed out."
+            ) from exc
+        except OSError as exc:
+            raise BlenderAdapterError(
+                f"Unable to launch Blender: {exc}"
+            ) from exc
+
+        combined_output = "\n".join(
+            part
+            for part in (
+                completed.stdout,
+                completed.stderr,
+            )
+            if part
+        )
+
+        if completed.returncode != 0:
+            raise BlenderAdapterError(
+                "AI-controlled Blender shot failed with exit code "
+                f"{completed.returncode}.\n"
+                f"{combined_output}"
+            )
+
+        if "STUDIO_AI_SHOT_OK" not in combined_output:
+            raise BlenderAdapterError(
+                "Blender completed without Studio's "
+                "AI-shot success marker."
+            )
+
+        if "STUDIO_AI_IR_EXECUTED_OK" not in combined_output:
+            raise BlenderAdapterError(
+                "Blender did not confirm trusted "
+                "Animation IR execution."
+            )
+
+        if not blend_path.is_file():
+            raise BlenderAdapterError(
+                f"Blender did not create AI shot: "
+                f"{blend_path}"
+            )
+
+        if not preview_path.is_file():
+            raise BlenderAdapterError(
+                f"Blender did not create AI preview: "
+                f"{preview_path}"
+            )
+
+        return BlenderShotResult(
+            blend_path=blend_path,
+            preview_path=preview_path,
+            stdout=combined_output,
+        )
