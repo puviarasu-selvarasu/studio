@@ -42,6 +42,9 @@ START_FRAME = 1
 END_FRAME = 144
 FPS = 24
 
+PREVIEW_FPS = 12
+PREVIEW_FRAME_STEP = FPS // PREVIEW_FPS
+
 
 def parse_arguments() -> tuple[Path, Path]:
     """Read trusted blend and preview paths passed after Blender's separator."""
@@ -130,6 +133,211 @@ def configure_render(
     scene.render.filepath = str(preview_path)
 
 
+def parent_object_to_bone(
+    obj: object,
+    rig: object,
+    bone_name: str,
+) -> None:
+    """Rigidly attach debug geometry to one armature bone."""
+
+    bone = rig.data.bones.get(bone_name)
+
+    if bone is None:
+        raise RuntimeError(
+            f"Required debug-body bone missing: {bone_name}"
+        )
+
+    world_matrix = obj.matrix_world.copy()
+
+    obj.parent = rig
+    obj.parent_type = "BONE"
+    obj.parent_bone = bone_name
+
+    bpy.context.view_layer.update()
+
+    obj.matrix_world = world_matrix
+
+    bpy.context.view_layer.update()
+
+
+def create_debug_segment(
+    rig: object,
+    bone_name: str,
+    *,
+    radius: float,
+) -> object:
+    """Create one cheap visible body segment."""
+
+    bone = rig.data.bones.get(bone_name)
+
+    if bone is None:
+        raise RuntimeError(
+            f"Required debug-body bone missing: {bone_name}"
+        )
+
+    midpoint = (
+        bone.head_local
+        + bone.tail_local
+    ) * 0.5
+
+    direction = (
+        bone.tail_local
+        - bone.head_local
+    )
+
+    bpy.ops.mesh.primitive_cube_add(
+        size=1.0,
+        location=midpoint,
+    )
+
+    segment = bpy.context.active_object
+    segment.name = (
+        "StudioDebug_"
+        + bone_name.replace(".", "_")
+    )
+
+    segment.dimensions = (
+        radius * 2.0,
+        radius * 2.0,
+        bone.length,
+    )
+
+    segment.rotation_mode = "QUATERNION"
+    segment.rotation_quaternion = (
+        direction.to_track_quat(
+            "Z",
+            "Y",
+        )
+    )
+
+    bpy.context.view_layer.objects.active = segment
+
+    bpy.ops.object.transform_apply(
+        location=False,
+        rotation=False,
+        scale=True,
+    )
+
+    parent_object_to_bone(
+        segment,
+        rig,
+        bone_name,
+    )
+
+    return segment
+
+
+def create_debug_head(
+    rig: object,
+) -> object:
+    """Create the visible debug head."""
+
+    bone = rig.data.bones.get("head")
+
+    if bone is None:
+        raise RuntimeError(
+            "Required debug-body bone missing: head"
+        )
+
+    midpoint = (
+        bone.head_local
+        + bone.tail_local
+    ) * 0.5
+
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        segments=12,
+        ring_count=8,
+        radius=0.38,
+        location=midpoint,
+    )
+
+    head = bpy.context.active_object
+    head.name = "StudioDebug_Head"
+
+    parent_object_to_bone(
+        head,
+        rig,
+        "head",
+    )
+
+    return head
+
+
+def create_debug_body(
+    rig: object,
+) -> tuple[object, ...]:
+    """Create renderable geometry for skeletal animation verification."""
+
+    segment_specs = (
+        ("pelvis", 0.28),
+        ("spine", 0.30),
+        ("chest", 0.38),
+        ("neck", 0.13),
+        ("upper_arm.L", 0.13),
+        ("forearm.L", 0.11),
+        ("hand.L", 0.14),
+        ("upper_arm.R", 0.13),
+        ("forearm.R", 0.11),
+        ("hand.R", 0.14),
+        ("thigh.L", 0.17),
+        ("shin.L", 0.14),
+        ("foot.L", 0.16),
+        ("thigh.R", 0.17),
+        ("shin.R", 0.14),
+        ("foot.R", 0.16),
+    )
+
+    parts = [
+        create_debug_segment(
+            rig,
+            bone_name,
+            radius=radius,
+        )
+        for bone_name, radius in segment_specs
+    ]
+
+    parts.append(
+        create_debug_head(rig)
+    )
+
+    return tuple(parts)
+
+
+def render_preview_frames(
+    frames_directory: Path,
+) -> int:
+    """Render the hardware-safe engineering frame sequence."""
+
+    frames_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    scene = bpy.context.scene
+    rendered_count = 0
+
+    for frame in range(
+        START_FRAME,
+        END_FRAME + 1,
+        PREVIEW_FRAME_STEP,
+    ):
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+
+        scene.render.filepath = str(
+            frames_directory
+            / f"frame_{rendered_count:04d}.png"
+        )
+
+        bpy.ops.render.render(
+            write_still=True
+        )
+
+        rendered_count += 1
+
+    return rendered_count
+
+
 def build_shot() -> None:
     """Construct and animate Studio's first deterministic shot."""
 
@@ -142,9 +350,11 @@ def build_shot() -> None:
     create_ground()
     create_camera()
 
-    create_humanoid_armature(
+    rig = create_humanoid_armature(
         RIG_NAME
     )
+
+    create_debug_body(rig)
 
     set_location(
         RIG_NAME,
@@ -200,6 +410,7 @@ def main() -> None:
 
     scene = bpy.context.scene
     scene.frame_set(END_FRAME)
+    bpy.context.view_layer.update()
 
     bpy.ops.wm.save_as_mainfile(
         filepath=str(blend_path)
@@ -209,7 +420,26 @@ def main() -> None:
         write_still=True
     )
 
+    frames_directory = (
+        preview_path.parent
+        / "frames"
+    )
+
+    rendered_count = render_preview_frames(
+        frames_directory
+    )
+
     print("STUDIO_DETERMINISTIC_SHOT_OK")
+    print("STUDIO_PREVIEW_FRAMES_OK")
+    print(
+        f"STUDIO_PREVIEW_FRAME_COUNT={rendered_count}"
+    )
+    print(
+        f"STUDIO_PREVIEW_FPS={PREVIEW_FPS}"
+    )
+    print(
+        f"STUDIO_PREVIEW_FRAMES_DIR={frames_directory}"
+    )
     print(f"STUDIO_BLEND_PATH={blend_path}")
     print(f"STUDIO_PREVIEW_PATH={preview_path}")
     print(f"STUDIO_TIMELINE={START_FRAME}:{END_FRAME}:{FPS}")

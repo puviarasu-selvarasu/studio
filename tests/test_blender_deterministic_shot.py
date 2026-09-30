@@ -40,6 +40,11 @@ def test_shot_exposes_expected_functions() -> None:
         "create_camera",
         "create_ground",
         "configure_render",
+        "parent_object_to_bone",
+        "create_debug_segment",
+        "create_debug_head",
+        "create_debug_body",
+        "render_preview_frames",
         "build_shot",
         "main",
     }
@@ -174,4 +179,85 @@ def test_shot_bootstraps_trusted_project_root() -> None:
     assert (
         "sys.path.insert(0, str(PROJECT_ROOT))"
         in source
+    )
+
+
+def test_shot_uses_half_rate_engineering_preview() -> None:
+    source = MODULE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "PREVIEW_FPS = 12" in source
+    assert (
+        "PREVIEW_FRAME_STEP = FPS // PREVIEW_FPS"
+        in source
+    )
+
+
+def test_shot_renders_numbered_preview_frames() -> None:
+    source = MODULE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "def render_preview_frames(" in source
+    assert "PREVIEW_FRAME_STEP" in source
+    assert 'f"frame_{rendered_count:04d}.png"' in source
+    assert "STUDIO_PREVIEW_FRAMES_OK" in source
+    assert "STUDIO_PREVIEW_FRAME_COUNT=" in source
+    assert "STUDIO_PREVIEW_FPS=" in source
+
+def test_shot_creates_visible_bone_parented_debug_body() -> None:
+    source = MODULE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "def parent_object_to_bone(" in source
+    assert 'obj.parent_type = "BONE"' in source
+    assert "obj.parent_bone = bone_name" in source
+
+    assert "def create_debug_segment(" in source
+    assert "primitive_cube_add(" in source
+
+    assert "def create_debug_head(" in source
+    assert "primitive_uv_sphere_add(" in source
+
+    assert "def create_debug_body(" in source
+    assert "rig = create_humanoid_armature(" in source
+    assert "create_debug_body(rig)" in source
+
+    for bone_name in (
+        "pelvis",
+        "spine",
+        "chest",
+        "neck",
+        "upper_arm.L",
+        "forearm.L",
+        "hand.L",
+        "upper_arm.R",
+        "forearm.R",
+        "hand.R",
+        "thigh.L",
+        "shin.L",
+        "foot.L",
+        "thigh.R",
+        "shin.R",
+        "foot.R",
+    ):
+        assert f'("{bone_name}",' in source
+
+def test_debug_body_preserves_world_transform() -> None:
+    source = MODULE.read_text(
+        encoding="utf-8"
+    )
+
+    assert "world_matrix = obj.matrix_world.copy()" in source
+    assert "obj.matrix_world = world_matrix" in source
+
+    assert "matrix_parent_inverse" not in source
+
+    assert (
+        source.count(
+            "bpy.context.view_layer.update()"
+        )
+        >= 4
     )
