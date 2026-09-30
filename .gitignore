@@ -110,3 +110,5 @@ Desktop.ini
 *.temp
 *.bak
 *.swp
+# Studio runtime output
+output/
