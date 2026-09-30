@@ -1,29 +1,91 @@
-# Studio — Glossary
+# Studio - Glossary
 
-## Action
+## Studio
 
-A supported animation behavior that a character can execute.
+The local-first AI-assisted animation production system.
 
-Examples:
-
-- idle
-- walk
-- wave
-- talk
-- blink
+Studio combines AI planning with deterministic Python-controlled animation and
+Blender execution.
 
 ---
 
-## Adapter
+## Director
 
-An infrastructure implementation of a port.
+The logical AI production role responsible for deciding what should happen in
+a scene or shot.
 
-Examples:
+Responsibilities may include:
 
-- OllamaAdapter
-- PiperAdapter
-- BlenderAdapter
-- FFmpegAdapter
+- staging
+- composition
+- camera intent
+- pacing
+- emotional intent
+- high-level action
+- visual mode
+- animation strategy
+- motion budget
+
+The Director does not directly control Blender.
+
+---
+
+## Director Plan
+
+A structured representation of cinematic and narrative intent.
+
+It sits between creative input and the Animator.
+
+Conceptually:
+
+    Creative Intent
+        ->
+    Director Plan
+        ->
+    Animator
+
+It is higher-level than Animation Plan and Animation IR.
+
+---
+
+## Animator
+
+The logical AI production role responsible for deciding how characters and
+camera should perform the Director's intent.
+
+Responsibilities may include:
+
+- action selection
+- poses
+- timing
+- gaze
+- head movement
+- eye movement
+- body movement
+- facial expression
+- transitions
+- acting
+- camera animation
+
+The Animator may request only supported production capabilities.
+
+---
+
+## Animation Plan
+
+A structured representation of character and camera performance.
+
+It sits between Director Plan and Animation IR.
+
+Conceptually:
+
+    Director Plan
+        ->
+    Animation Plan
+        ->
+    Animation IR
+
+Animation Plan describes performance rather than raw Blender operations.
 
 ---
 
@@ -31,200 +93,394 @@ Examples:
 
 Animation Intermediate Representation.
 
-The structured, implementation-independent representation of animation intent.
+The execution-oriented structured representation between animation planning
+and deterministic execution.
 
-It is the boundary between AI-generated instructions and Blender execution.
+Current concepts include:
+
+- scene identifier
+- scene duration
+- character
+- action
+- action start time
+- action duration
+
+Animation IR is intentionally smaller than the complete creative model.
 
 ---
 
-## Application Layer
+## Trust Boundary
 
-The orchestration layer.
+The boundary where AI-generated structured intent becomes eligible for
+deterministic execution.
 
-It coordinates workflows through ports without depending directly on infrastructure
-implementations.
+Studio's critical trust boundary is:
+
+    Animation IR
+        ->
+    Structural Validation
+        ->
+    Capability Validation
+        ->
+    Deterministic Toolkit
+
+AI-generated Python must never cross this boundary.
+
+---
+
+## Structural Validation
+
+Validation of the internal correctness of structured animation data.
+
+Examples include:
+
+- required identifiers
+- positive duration
+- valid action timing
+- actions fitting inside scene duration
+
+Structural validation does not determine whether a character actually supports
+an action.
 
 ---
 
 ## Capability Registry
 
-A machine-readable description of what assets and characters are capable of doing.
+The authoritative registry describing which deterministic actions are supported
+by a character or production asset.
 
-The registry prevents the LLM from requesting unsupported behavior.
-
----
-
-## Composition Root
-
-The location where concrete dependencies are constructed and connected.
-
-For Studio, the initial composition root is `main.py`.
-
-The composition root is allowed to know about concrete adapters.
-
-The rest of the application should depend on abstractions.
+The registry prevents AI planning from inventing unsupported executable
+behavior.
 
 ---
 
-## Domain
+## Capability Validation
 
-The business/production concepts and rules of Studio.
+Validation that requested actions exist in the Capability Registry.
 
-Domain code should remain independent of external systems.
-
----
-
-## Exposure
-
-The number of animation frames for which a drawing or pose is held before changing.
-
-Limited exposure is important for the intended retro television-animation aesthetic.
+An unsupported action causes a controlled failure before Blender execution.
 
 ---
 
-## FunLearn
+## Animation Toolkit
 
-The educational short-form product built on the Studio kernel.
+The deterministic Python-controlled animation layer.
 
-Initial target:
+It translates validated animation intent into trusted Blender operations.
 
-45–60 second educational videos for children.
-
----
-
-## Grease Pencil
-
-Blender's 2D drawing/animation system.
-
-Studio will eventually use Grease Pencil as part of the Blender execution layer.
+The toolkit grows progressively from low-level Blender control to reusable
+character acting and advanced choreography.
 
 ---
 
-## Hexagonal Architecture
+## Blender Adapter
 
-An architecture in which the core application communicates with external systems through
-ports and external systems are implemented through adapters.
+Infrastructure responsible for controlled interaction with Blender.
 
-Also called Ports and Adapters architecture.
+It may:
 
----
+- launch Blender
+- pass trusted Studio-owned scripts/data
+- collect results
+- translate process failures
 
-## Kernel
-
-The shared reusable production infrastructure used by multiple Studio products.
-
-The kernel should contain only functionality that genuinely belongs to both consumers.
+It must not accept arbitrary AI-generated Python.
 
 ---
 
-## LLM
+## Limited Animation
 
-Large Language Model.
+A production approach that intentionally concentrates movement on the elements
+needed to communicate a shot.
 
-In Studio, the LLM is used for creative/content planning and structured intent generation.
+Studio treats limited animation as a first-class production strategy rather
+than a quality defect.
 
-It is not responsible for directly controlling Blender.
+Examples include:
 
----
-
-## Port
-
-An interface/contract describing an external capability required by the application.
-
-Examples:
-
-- LLMPort
-- TTSPort
-- AnimatorPort
-- RendererPort
+- held poses
+- key poses
+- reusable cycles
+- reaction shots
+- camera movement over still artwork
+- selective facial movement
+- impact frames
 
 ---
 
-## Proxy Render
+## Animation Strategy
 
-A deliberately low-cost render used to verify a scene before performing a final render.
+The broad production technique selected for a shot.
 
-The initial Studio proxy target is:
+Potential strategies include:
 
-- Workbench
-- 480p
-- 8 FPS
+- HOLD
+- KEY_POSE
+- REACTION
+- DIALOGUE
+- CAMERA_OVER_STILL
+- PAN_BACKGROUND
+- LOOP
+- WALK_CYCLE
+- RUN_CYCLE
+- PARALLAX
+- SILHOUETTE
+- MONTAGE
+- IMPACT_FRAME
+- ACTION
+- HERO_ACTION
 
 ---
 
-## Renderer
+## Motion Budget
 
-The subsystem responsible for producing rendered visual output.
+The amount of animation effort intentionally allocated to a shot.
 
-Blender is the intended animation/rendering engine.
+Motion budget may depend on:
 
-FFmpeg is the intended video assembly/encoding tool.
+- narrative importance
+- emotional importance
+- shot duration
+- required movement
+- visual mode
+- available capabilities
+- production cost
+
+---
+
+## Hero Animation
+
+Animation receiving greater motion/detail investment because the shot is
+especially important visually, emotionally, or narratively.
+
+Hero animation is selective rather than the default for every shot.
+
+---
+
+## 2D Mode
+
+A production mode emphasizing flat or illustrated presentation.
+
+Potential uses include:
+
+- close-ups
+- dialogue
+- emotional acting
+- held poses
+- graphic compositions
+- impact frames
+
+---
+
+## 2.5D Mode
+
+A production mode combining layered 2D presentation with depth and controlled
+camera movement.
+
+Potential uses include:
+
+- parallax
+- rooms
+- streets
+- corridors
+- layered environments
+
+---
+
+## Hybrid Mode
+
+A production mode combining stylized 2D and 3D elements.
+
+Potential uses include:
+
+- complex perspective
+- vehicles
+- battles
+- action
+- complex camera movement
+- effects
+
+---
+
+## Character Identity
+
+The persistent production identity of a character.
+
+Identity should remain stable even when visual presentation changes.
+
+---
+
+## Character Variant
+
+A particular approved presentation of a Character Identity.
+
+Variants may change:
+
+- costume
+- hairstyle
+- physique
+- age presentation
+- accessories
+- project-specific styling
+
+---
+
+## Rig Profile
+
+Metadata describing the known animation structure and controls of a rigged
+character asset.
+
+---
+
+## World
+
+A reusable production-level environment context containing one or more
+Locations.
+
+---
+
+## Location
+
+A reusable place within a World.
+
+A Location may reference:
+
+- environment assets
+- props
+- spawn points
+- camera anchors
+- lighting presets
+
+---
+
+## Shot
+
+The smallest primary cinematic production unit.
+
+Studio should render and recover work at shot-level boundaries where practical.
 
 ---
 
 ## Scene
 
-A bounded portion of an episode or short containing:
-
-- characters
-- actions
-- camera
-- background
-- duration
-- audio/visual requirements
+A narrative unit containing one or more related shots.
 
 ---
 
-## Strangler Fig Migration
+## Sequence
 
-A migration strategy where new functionality is built alongside an existing implementation,
-then gradually replaces it after the new implementation is proven.
+A collection of related scenes forming a larger narrative movement.
 
-Studio uses this approach when migrating the previous Pillow/FFmpeg pipeline.
+---
+
+## Episode
+
+A long-form production containing sequences.
+
+---
+
+## Project
+
+The highest-level Studio production container.
+
+Conceptually:
+
+    Project
+        ->
+    Episode
+        ->
+    Sequence
+        ->
+    Scene
+        ->
+    Shot
+
+---
+
+## Proxy Render
+
+A low-cost render used for inspection before expensive final rendering.
+
+Proxy rendering is especially important on constrained hardware.
+
+---
+
+## Voice Actor Agent
+
+A future logical production role responsible for dialogue-performance intent.
+
+The Voice Actor Agent manages performance decisions.
+
+The TTS engine generates the actual waveform.
+
+---
+
+## Voice Profile
+
+Persistent configuration representing the intended voice identity of a
+character.
+
+---
+
+## Music Director Agent
+
+A future logical production role responsible for music and ambience intent.
+
+It plans cues rather than being permanently coupled to one music-generation
+engine.
 
 ---
 
 ## Vertical Slice
 
-A small feature that crosses the necessary layers and produces a real end-to-end result.
+A small end-to-end production path proving that architecture works in reality.
 
 Example:
 
-    IR
-      ->
+    hardcoded plan
+        ->
+    Animation IR
+        ->
+    validation
+        ->
+    toolkit
+        ->
     Blender
-      ->
+        ->
     rendered shot
 
-A vertical slice is preferred over building an entire layer in isolation.
+Studio prioritizes vertical slices over broad unproven feature development.
 
 ---
 
-## Visual Rig
+## Deterministic Execution
 
-A reusable character construction used by Blender to produce multiple poses and actions.
+Execution where validated inputs map to controlled known operations rather than
+arbitrary model-generated code.
 
-A character is created once and reused rather than regenerated every frame.
-
----
-
-## Workbench
-
-Blender's lightweight rendering mode.
-
-Studio uses Workbench for inexpensive proxy renders during development.
+Deterministic execution is the foundation beneath Studio's AI layers.
 
 ---
 
-## Deterministic
+## Local-First
 
-Given the same valid input, configuration, assets, and software version, the system should
-produce the same or substantially reproducible execution result.
+Studio is designed so its core production workflow can operate using local
+software and local compute without requiring paid cloud APIs.
+
+Replaceable cloud integrations may be considered later, but they are not core
+dependencies.
 
 ---
 
-## Human Review Gate
+## Legacy Lesson Pipeline
 
-A mandatory point where a human reviews generated content before publication.
+The previous educational-content path containing concepts such as:
 
-Studio does not automatically publish generated videos.
+- Lesson
+- ContentScene
+- LessonGenerator
+- lesson JSON
+
+It remains temporarily for migration safety.
+
+New animation functionality must not depend on it.

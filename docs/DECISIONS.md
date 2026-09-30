@@ -200,3 +200,203 @@ Feature breadth is deferred until this path works.
 ### Negative
 
 Some useful-looking features must deliberately wait until the core pipeline is proven.
+---
+
+# ADR-006: Focus Studio on Deterministic AI-Assisted Animation Production
+
+## Status
+
+Accepted
+
+## Context
+
+Studio was originally structured around two product directions:
+
+- an educational animation product
+- a broader anime and narrative animation product
+
+The educational path introduced useful foundations including structured content,
+local LLM integration, validation, and application boundaries.
+
+However, continuing to develop two product directions would split engineering
+effort and allow educational-domain concepts such as Lesson and ContentScene to
+shape an animation architecture they were not designed to represent.
+
+The primary product goal is now a general local-first animation production
+system capable of progressively supporting original narrative animation.
+
+Studio also requires a stronger separation between:
+
+- cinematic direction
+- character performance planning
+- executable animation instructions
+- Blender execution
+
+The project is developed on constrained local hardware, so the architecture must
+favor deterministic reusable animation, shot-based execution, limited-animation
+techniques, and sequential expensive workloads.
+
+## Decision
+
+Studio will proceed as one focused AI-assisted animation production system.
+
+The primary production architecture is:
+
+    Creator
+        ->
+    Director
+        ->
+    Director Plan
+        ->
+    Animator
+        ->
+    Animation Plan
+        ->
+    Animation IR
+        ->
+    Structural Validation
+        ->
+    Capability Validation
+        ->
+    Deterministic Animation Toolkit
+        ->
+    Blender
+
+The governing rule is:
+
+> AI decides WHAT. Python decides HOW. Blender executes.
+
+AI-generated Python or arbitrary Blender commands must not be executed.
+
+Animation IR remains the trust boundary between structured animation intent and
+deterministic execution.
+
+Director Plan, Animation Plan, and Animation IR remain separate representation
+levels.
+
+The Director owns high-level cinematic intent.
+
+The Animator owns performance intent.
+
+Animation IR contains executable animation intent supported by deterministic
+capabilities.
+
+The Capability Registry defines which animation actions the system genuinely
+supports.
+
+Studio will progressively support:
+
+- 2D
+- 2.5D
+- hybrid 2D/3D production
+- limited animation
+- reusable animation
+- selective hero animation
+- modern cinematography and compositing
+
+The previous educational Lesson/Content pipeline becomes legacy functionality.
+
+It will:
+
+- remain temporarily for migration safety
+- retain its existing tests
+- receive no new product development
+- not become a dependency of new animation features
+- be removed only through a separate controlled checkpoint
+
+Development will proceed deterministic-first:
+
+    Blender bridge
+        ->
+    deterministic animation toolkit
+        ->
+    controllable character
+        ->
+    deterministic short scene
+        ->
+    AI Animator
+        ->
+    AI Director
+        ->
+    reusable production systems
+        ->
+    longer productions
+
+Voice Actor and Music Director capabilities are future production layers and
+are not prerequisites for proving the visual animation pipeline.
+
+## Consequences
+
+### Positive
+
+The project now has one primary product direction.
+
+Animation-specific concepts can evolve without being constrained by the
+educational Lesson model.
+
+The Director, Animator, and execution layers have explicit responsibilities.
+
+AI output remains isolated from arbitrary code execution.
+
+Deterministic animation can be tested independently from AI planning.
+
+Blender integration can be developed before autonomous creative behavior.
+
+Limited-animation strategies and motion budgeting can reduce production cost.
+
+The architecture can grow from short shots toward longer productions without
+requiring entire episodes to remain in memory.
+
+Existing useful foundations such as the LLM adapter, Animation IR, capability
+registry, ports, validation, and tests remain reusable.
+
+### Negative
+
+Some existing educational code becomes temporary legacy code.
+
+Documentation and package structure require gradual cleanup.
+
+The deterministic-first approach delays visually impressive AI demonstrations
+until the execution layer is reliable.
+
+Reusable character, world, voice, music, and continuity systems require later
+phases.
+
+High-quality long-form animation remains a multi-stage engineering problem and
+cannot be treated as a single model-generation task.
+
+## Alternatives Considered
+
+### Continue both FunLearn and narrative animation as equal products
+
+Rejected because it splits development effort and encourages unrelated domain
+models to influence the animation kernel.
+
+### Build the AI Director first
+
+Rejected because the Director could produce plans that the execution system
+cannot perform.
+
+### Let the LLM generate Blender Python directly
+
+Rejected because it creates an unsafe and difficult-to-test execution boundary.
+
+### Use generative video as the primary renderer
+
+Rejected because it weakens deterministic character identity, asset reuse,
+precise animation control, recoverability, and local constrained-hardware
+operation.
+
+### Build all production systems before rendering anything
+
+Rejected because it would create architecture without executable evidence.
+
+## Verification
+
+This decision is considered successfully adopted when:
+
+1. new animation functionality does not depend on the legacy Lesson pipeline
+2. Blender execution accepts only trusted Studio-owned deterministic code
+3. AI animation intent crosses structural and capability validation
+4. a deterministic short animation is produced before AI Animator integration
+5. AI Animator is proven before AI Director controls the full animation flow

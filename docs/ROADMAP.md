@@ -1,271 +1,941 @@
-# Studio — Roadmap
+# Studio - Roadmap
 
-## Guiding Rule
+## 1. Roadmap Principle
 
-Every phase must produce something runnable.
+Studio is developed through small, testable vertical slices.
 
-Do not add breadth before the current vertical slice works.
+The roadmap follows one rule:
+
+> Never add autonomous AI behavior before the deterministic capability it
+> depends on has been proven.
+
+The development direction is:
+
+    deterministic execution
+        ->
+    deterministic animation
+        ->
+    AI Animator
+        ->
+    AI Director
+        ->
+    reusable production systems
+        ->
+    longer productions
+
+The roadmap is capability-driven rather than deadline-driven.
+
+A phase is complete only when its verification boundary passes.
 
 ---
 
-## Phase 0 — Foundation
+## 2. Completed Foundation
 
-Target: Week 1
+### Phase 0 - Repository Foundation
 
-### Work
+Status: COMPLETE
 
-- repository creation
-- Python virtual environment
-- package structure
-- documentation
-- ports
-- composition root
-- pytest foundation
-- Git configuration
+Established:
 
-### Explicitly excluded
-
-- Blender
-- animation
-- Ollama calls
-- Piper calls
-- FFmpeg calls
-- AI image generation
-
-### Deliverable
-
-    python main.py --help
-
-works successfully and the test suite passes.
+- Python project
+- repository structure
+- virtual environment
+- test infrastructure
+- modular kernel foundation
+- Ports and Adapters direction
 
 ---
 
-## Phase 1 — Content Pipeline Migration
+### Phase 1.1 - Animation IR
 
-Target: Week 2
+Status: COMPLETE
 
-### Work
+Established:
 
-- migrate existing lesson generation concepts
-- Ollama adapter
-- structured LLM output
-- schema validation
-- capability registry
-- Animation IR schema
-- Animation IR validator
+- AnimationAction
+- CharacterAnimation
+- AnimationScene
+- structural validation
+- automated tests
 
-### Deliverable
-
-    lesson request
-        ->
-    structured lesson
-        ->
-    validated scene representation
-        ->
-    validated Animation IR
-
-No rendering yet.
+Animation IR became the initial deterministic execution representation.
 
 ---
 
-## Phase 2 — Blender Sanity Test
+### Phase 1.2 - Content Domain
 
-Target: Week 3
+Status: COMPLETE / LEGACY
 
-### Work
+Established:
 
-Create one manual Blender scene containing Momo.
+- ContentScene
+- Lesson
+- content validation
 
-Prove the smallest possible Blender bridge.
+This functionality belongs to the previous educational-product direction.
 
-Test:
-
-    eyes open
-        ->
-    eyes closed
-        ->
-    eyes open
-
-### Deliverable
-
-A Blender background-mode command produces a short blink render.
-
-This phase must succeed before automated Blender animation is attempted.
+It remains temporarily for migration safety but is not part of new animation
+development.
 
 ---
 
-## Phase 3 — Blender Adapter
+### Phase 1.3 - Lesson JSON Boundary
 
-Target: Weeks 4–5
+Status: COMPLETE / LEGACY
 
-### Work
+Established structured Lesson JSON parsing and validation.
 
-- Blender adapter
-- IR-to-Blender translation
-- rig loading
-- action application
-- frame rendering
-- process/error handling
-
-### Deliverable
-
-A hardcoded Animation IR produces a complete animated Momo shot.
-
-Example:
-
-    walk
-      ->
-    wave
-      ->
-    blink
-
-No manual animation during execution.
+This remains covered by tests but is no longer an active development path.
 
 ---
 
-## Phase 4 — Character Library
+### Phase 1.4 - Local LLM Adapter
 
-Target: Weeks 5–6
+Status: COMPLETE
 
-### Work
+Established:
 
-Improve Momo.
+- LLMPort
+- OllamaAdapter
+- controlled adapter failures
+- local model integration boundary
 
-Initial action set:
+The adapter remains part of the new Studio architecture.
+
+---
+
+### Phase 1.5 - Lesson Generator
+
+Status: COMPLETE / LEGACY
+
+Established the previous Lesson-generation application flow.
+
+It remains temporarily but must not be extended.
+
+---
+
+### Phase 1.6 - Capability Registry
+
+Status: COMPLETE
+
+Established:
+
+- CharacterCapability
+- CapabilityRegistry
+- capability loading
+- capability validation
+- controlled unsupported-action failure
+
+This is a core foundation for the animation system.
+
+---
+
+## 3. Phase 2.0 - Architectural Pivot
+
+Status: IN PROGRESS
+
+Purpose:
+
+Transition Studio from the previous FunLearn-first direction into one focused
+AI-assisted animation production system.
+
+### Phase 2.0A - Baseline Verification
+
+Status: COMPLETE
+
+Verified:
+
+- Python 3.11.9 virtual environment
+- pytest
+- complete regression suite
+- clean repository baseline
+
+### Phase 2.0B - Architecture Inspection
+
+Status: COMPLETE
+
+Reviewed:
+
+- README
+- vision
+- architecture
+- roadmap
+- decisions
+- glossary
+- project entry point
+- Python configuration
+- kernel structure
+
+### Phase 2.0C - README Pivot
+
+Status: COMPLETE
+
+README now describes:
+
+- focused Studio product
+- Director / Animator architecture
+- Animation IR trust boundary
+- deterministic Blender execution
+- 2D / 2.5D / hybrid visual direction
+- limited-animation philosophy
+- legacy Lesson/Content boundary
+
+### Phase 2.0D - Architecture Documentation Pivot
+
+Status: IN PROGRESS
+
+Update:
+
+- VISION.md
+- ARCHITECTURE.md
+- ROADMAP.md
+- DECISIONS.md
+- GLOSSARY.md
+
+No production functionality is added during this checkpoint.
+
+### Phase 2.0E - Pivot Verification
+
+Planned verification:
+
+- complete pytest regression
+- documentation diff inspection
+- git diff --check
+- explicit staged-file inspection
+- clean documentation commit
+
+### Phase 2.0F - Legacy Isolation Review
+
+Review legacy:
+
+- Lesson
+- ContentScene
+- LessonGenerator
+- lesson JSON
+- FunLearn-specific packages
+
+Do not delete them during the architecture-documentation checkpoint.
+
+Any removal must occur separately with regression verification.
+
+---
+
+## 4. Phase 2.1 - Minimal Desktop UI
+
+Goal:
+
+Create the smallest useful Studio desktop shell.
+
+Likely technology:
+
+- PySide6
+- Qt
+
+Initial UI:
+
+- main window
+- scene/story text input
+- Direct button
+- Animate button
+- status area
+- preview placeholder
+
+Rules:
+
+- UI calls Application services
+- UI does not directly control Blender
+- UI contains no production business logic
+- UI remains intentionally minimal
+
+Success criterion:
+
+> Studio launches as a desktop application with a thin working UI boundary.
+
+This phase does not require AI animation.
+
+---
+
+## 5. Phase 2.2 - Blender Bridge Proof
+
+Goal:
+
+Prove Python can deterministically control the installed Blender runtime.
+
+Initial operations:
+
+- locate Blender executable
+- launch Blender headlessly
+- execute a trusted Studio-owned Blender script
+- create or load a simple scene
+- create an object
+- manipulate a transform
+- configure a camera
+- render a test frame
+- return a controlled success/failure result
+
+No LLM output is involved.
+
+Success criterion:
+
+> Studio launches Blender through a controlled adapter and produces a known
+> deterministic render.
+
+This is the first real Studio-to-Blender integration milestone.
+
+---
+
+## 6. Phase 2.3 - Animation Toolkit Level 0
+
+Goal:
+
+Build deterministic Blender control primitives.
+
+Initial toolkit capabilities may include:
+
+- place_object
+- move_object
+- rotate_object
+- set_camera
+- move_camera
+- insert_keyframe
+- render_shot
+
+Requirements:
+
+- explicit inputs
+- deterministic behavior
+- controlled failures
+- no arbitrary code execution
+- integration tests where practical
+
+Success criterion:
+
+> A hardcoded Studio plan produces a short animated object/camera shot through
+> reusable deterministic tools.
+
+---
+
+## 7. Phase 2.4 - First Controllable Character
+
+Goal:
+
+Move from generic objects to one reusable rigged character.
+
+Scope:
+
+- one approved test character
+- known rig structure
+- character loading
+- deterministic placement
+- deterministic pose control
+- deterministic animation
+- camera framing
+- proxy rendering
+
+Do not attempt a full character-generation system yet.
+
+Success criterion:
+
+> Studio loads one reusable rigged character and animates it without manual
+> keyframing during execution.
+
+---
+
+## 8. Phase 2.5 - Animation Toolkit Level 1
+
+Goal:
+
+Implement a small useful character animation vocabulary.
+
+Initial target capabilities:
 
 - idle
 - walk
-- wave
-- talk
+- turn
+- look_at
 - blink
+- basic talk
+- basic expressions
 
-Define:
+Introduce limited-animation primitives where useful.
 
-- rig conventions
-- action conventions
-- naming
-- anchors
-- rest pose
-- reusable animation definitions
+Potential production strategies:
 
-### Deliverable
+- HOLD
+- KEY_POSE
+- REACTION
+- DIALOGUE
+- CAMERA_OVER_STILL
+- LOOP
+- WALK_CYCLE
+- PARALLAX
 
-Momo can perform all five actions deterministically.
+The Capability Registry must reflect only functionality that genuinely exists.
 
----
+Success criterion:
 
-## Phase 5 — Integrated FunLearn Pipeline
-
-Target: Week 7
-
-### Work
-
-- background generation
-- background caching
-- procedural background fallback
-- Blender character compositing
-- TTS
-- FFmpeg
-- scene assembly
-- final short assembly
-
-### Deliverable
-
-One complete approximately 45-second animated FunLearn short.
+> The test character performs multiple validated reusable actions through the
+> deterministic toolkit.
 
 ---
 
-## Phase 6 — Scene Director
+## 9. Phase 2.6 - Deterministic 5-10 Second Scene
 
-Target: Week 8
+Goal:
 
-### Work
+Combine existing deterministic capabilities into a coherent short scene.
 
-- Ollama scene planning
-- constrained prompt templates
-- few-shot examples
-- deterministic mapping from scene themes to supported actions
+The scene should demonstrate several of:
 
-The AI describes intent.
+- character placement
+- held pose
+- movement
+- expression
+- gaze
+- camera
+- action transition
+- limited-animation strategy
+- proxy render
 
-Python selects executable animation behavior.
+No AI planning is required.
 
-### Deliverable
+Success criterion:
 
-A topic such as:
+> A hardcoded plan creates a coherent 5-10 second Blender animation without
+> manual keyframing during execution.
 
-    colors
-
-can produce a complete animated short using the supported production vocabulary.
-
----
-
-## Phase 7 — Kernel Extraction
-
-Target: Week 9
-
-### Work
-
-- stabilize shared kernel
-- extract reusable components
-- FunLearn depends on kernel
-- Anime Studio skeleton created
-- style bible created
-
-### Deliverable
-
-Two independent applications use the same kernel.
+This is the key prerequisite for introducing the Animator Agent.
 
 ---
 
-## Phase 8+ — Anime Studio
+## 10. Phase 3 - AI Animator
 
-Target: Months 3–6
+Goal:
 
-Potential work:
+Use the local LLM to convert high-level animation direction into structured
+performance intent.
 
-- second character
-- screenplay parser
-- multi-character scenes
+Initial flow:
+
+    Human / Hardcoded Director Direction
+        ->
+    Animator Agent
+        ->
+    Animation Plan
+        ->
+    Animation IR
+        ->
+    Structural Validation
+        ->
+    Capability Validation
+        ->
+    Deterministic Toolkit
+        ->
+    Blender
+
+The Animator must not generate Python.
+
+The Animator must not generate raw Blender commands.
+
+Unsupported actions fail before execution.
+
+Success criterion:
+
+> Natural-language animation direction is converted into valid executable
+> animation using only registered capabilities.
+
+---
+
+## 11. Phase 4 - AI Director
+
+Goal:
+
+Introduce structured cinematic planning.
+
+Initial Director responsibilities:
+
+- shot intent
+- duration
+- character involvement
+- emotional intent
+- staging
+- composition
+- camera intent
+- high-level action
+- visual mode
+- animation strategy
+- motion budget
+
+Flow:
+
+    Story / Scene Intent
+        ->
+    Director Agent
+        ->
+    Director Plan
+        ->
+    Animator Agent
+        ->
+    Animation Plan
+        ->
+    Animation IR
+        ->
+    Blender
+
+Success criterion:
+
+> The Director produces a structured shot plan that the Animator can transform
+> into executable animation.
+
+---
+
+## 12. Phase 5 - First AI-Produced 5-15 Second Scene
+
+Goal:
+
+Prove the complete creative-to-render pipeline.
+
+Target flow:
+
+    Creator
+        ->
+    Director
+        ->
+    Animator
+        ->
+    Validation
+        ->
+    Toolkit
+        ->
+    Blender
+        ->
+    Proxy Render
+        ->
+    Human Review
+
+Success criterion:
+
+> Studio produces a coherent 5-15 second scene from high-level creative input
+> using local AI planning and deterministic execution.
+
+This is the first major product proof.
+
+---
+
+## 13. Phase 6 - Character Identity Foundation
+
+Goal:
+
+Separate persistent character identity from individual visual variants.
+
+Introduce only the minimum concepts required for:
+
+- CharacterIdentity
+- CharacterVariant
+- rig reference
+- capability reference
+- visual asset reference
+
+Success criterion:
+
+> One character identity can safely reference more than one approved appearance
+> variant without losing its production identity.
+
+---
+
+## 14. Phase 7 - Character Production Pipeline
+
+Goal:
+
+Make reusable character preparation more systematic.
+
+Potential capabilities:
+
+- character asset registration
+- rig validation
+- pose library
+- expression library
+- animation clip library
+- costume variants
+- hairstyle variants
+- asset preview
+- character metadata
+
+Real-person-inspired characters may be explored only after the reusable
+identity pipeline is stable.
+
+Success criterion:
+
+> Reusable characters can be prepared, validated, selected, and animated across
+> multiple scenes.
+
+---
+
+## 15. Phase 8 - World and Prop Foundation
+
+Goal:
+
+Create reusable production environments.
+
+Potential concepts:
+
+- World
+- Location
+- environment asset
+- props
+- spawn points
+- camera anchors
+- lighting presets
+
+Support may progressively include:
+
+- 2D backgrounds
+- layered 2D
+- 2.5D environments
+- stylized 3D
+- hybrid environments
+
+Success criterion:
+
+> A reusable location can be loaded and used by multiple shots without being
+> rebuilt manually.
+
+---
+
+## 16. Phase 9 - Voice Actor Agent
+
+Goal:
+
+Add structured dialogue performance.
+
+Initial flow:
+
+    Dialogue
+        ->
+    Voice Actor Agent
+        ->
+    Voice Performance Plan
+        ->
+    TTSPort
+        ->
+    Local TTS
+        ->
+    Audio
+
+Initial implementation may use Piper.
+
+Requirements:
+
+- persistent character voice profiles
+- controlled local generation
+- timing metadata
+- replaceable TTS adapter
+
+Success criterion:
+
+> Multiple characters can produce distinguishable persistent dialogue voices
+> through one coordinated voice-production workflow.
+
+---
+
+## 17. Phase 10 - Acting, Dialogue and Lip Sync
+
+Goal:
+
+Connect voice timing with character performance.
+
+Potential capabilities:
+
 - dialogue timing
-- shot planning
-- longer episodes
-- reusable scene templates
-- production management
+- mouth cues
+- basic lip sync
+- blink scheduling
+- gaze
+- head movement
+- facial expressions
+- breathing
+- micro-idles
+- dialogue camera strategies
 
-No Phase 8 feature should be started merely because it sounds useful.
+Target milestone:
 
-It must solve a demonstrated production problem.
-
----
-
-## Quality Gates
-
-Before moving to the next major phase:
-
-1. Current phase is runnable.
-2. Tests pass.
-3. Failure behavior is understood.
-4. Hardware performance is acceptable.
-5. The architecture has not accumulated unnecessary abstraction.
-6. The previous phase remains reproducible.
+> Produce a coherent 30-60 second dialogue or acting scene.
 
 ---
 
-## Production Strategy
+## 18. Phase 11 - Multilingual Voice
 
-Initial target:
+Goal:
 
-    1 finished video
+Support alternate dialogue tracks after single-language performance works.
 
-not:
+Potential capabilities:
 
-    5 videos/week
+- translated dialogue track
+- language-specific voice profile
+- timing adaptation
+- subtitle track
+- alternate audio assembly
 
-Production volume will increase only after:
+Do not couple the animation architecture to one TTS engine.
 
-- rendering is stable
-- quality is stable
-- failures are recoverable
-- assets are reusable
-- the production workflow is repeatable
+---
+
+## 19. Phase 12 - Music Director
+
+Goal:
+
+Add structured music and ambience planning.
+
+Initial focus:
+
+- cue planning
+- ambience
+- reusable music
+- procedural/MIDI possibilities
+- dialogue-aware placement
+- FFmpeg mixing
+
+High-quality local generative music is optional and replaceable.
+
+Success criterion:
+
+> Studio can plan and assemble intentional music/ambience cues around an
+> animated scene.
+
+---
+
+## 20. Phase 13 - Review / Critic Loop
+
+Goal:
+
+Introduce structured review only after animation and rendering are reliable.
+
+Potential loop:
+
+    render proxy
+        ->
+    inspect
+        ->
+    identify issue
+        ->
+    propose structured correction
+        ->
+    validate
+        ->
+    rerender
+
+Initial review may remain human-driven.
+
+Machine-assisted review must never bypass deterministic validation.
+
+---
+
+## 21. Phase 14 - Multi-Scene Production
+
+Goal:
+
+Move from isolated scenes to connected narrative production.
+
+Introduce as required:
+
+- Project
+- Episode
+- Sequence
+- Scene
+- Shot
+- production manifests
+- persisted status
+- recovery
+- caching
+- continuity state
+
+Success criterion:
+
+> Multiple scenes can be produced, recovered, and assembled without requiring
+> the complete production in memory.
+
+---
+
+## 22. Phase 15 - UI Maturation
+
+Goal:
+
+Turn the minimal desktop shell into a practical production interface.
+
+Potential areas:
+
+- project browser
+- scene editor
+- shot list
+- character browser
+- world browser
+- production status
+- render queue
+- preview
+- voice controls
+- export
+- error reporting
+
+The UI remains an adapter over Application services.
+
+---
+
+## 23. Phase 16 - Production Hardening
+
+Focus:
+
+- recovery
+- logging
+- caching
+- deterministic asset references
+- project portability
+- render retry
+- production manifests
+- error reporting
+- configuration
+- performance profiling
+- regression testing
+
+The goal is reliability rather than new creative features.
+
+---
+
+## 24. Phase 17 - Advanced Animation Capabilities
+
+Potential additions:
+
+- richer acting
+- object interaction
+- procedural gaze
+- procedural head movement
+- secondary motion
+- advanced facial animation
+- action composition
+- root motion
+- two-character interactions
+- combat primitives
+- group choreography
+- advanced camera choreography
+- effects
+
+Capabilities are added only when deterministic implementations exist.
+
+---
+
+## 25. Phase 18 - Approximately 10-Minute Production
+
+Goal:
+
+Prove that the architecture scales beyond short demonstrations.
+
+Requirements will likely include:
+
+- reusable characters
+- reusable locations
+- continuity
+- shot recovery
+- proxy workflow
+- voice
+- music
+- production manifests
+- sequential resource scheduling
+- reliable final assembly
+
+Success criterion:
+
+> Studio can complete and recover a coherent approximately 10-minute production
+> using shot-based execution.
+
+---
+
+## 26. Phase 19 - Full Episode Production
+
+Long-term target:
+
+Produce original episode-length narrative animation through reusable,
+recoverable production workflows.
+
+This phase depends on evidence from shorter productions.
+
+The architecture must not assume that full automation equals zero human review.
+
+The intended model is:
+
+    human creative ownership
+        +
+    AI planning
+        +
+    deterministic animation tools
+        +
+    reusable assets
+        +
+    shot-based rendering
+        +
+    structured review
+
+---
+
+## 27. Deferred Until Proven Necessary
+
+Do not introduce these merely because they sound scalable:
+
+- microservices
+- Docker-based distributed architecture
+- Kubernetes
+- cloud render farms
+- paid AI APIs as core dependencies
+- event buses
+- distributed queues
+- complex databases
+- multi-user collaboration infrastructure
+- frame-by-frame generative video
+- giant local language models
+
+They may be reconsidered only when a measured requirement justifies them.
+
+---
+
+## 28. Immediate Path
+
+The immediate engineering path after the architecture pivot is:
+
+    Phase 2.1
+    Minimal Desktop UI
+        |
+        v
+    Phase 2.2
+    Blender Bridge
+        |
+        v
+    Phase 2.3
+    Animation Toolkit Level 0
+        |
+        v
+    Phase 2.4
+    First Controllable Character
+        |
+        v
+    Phase 2.5
+    Animation Toolkit Level 1
+        |
+        v
+    Phase 2.6
+    Deterministic 5-10 Second Scene
+        |
+        v
+    Phase 3
+    AI Animator
+        |
+        v
+    Phase 4
+    AI Director
+        |
+        v
+    Phase 5
+    First AI-Produced 5-15 Second Scene
+
+Do not skip the deterministic milestones to reach the AI stages faster.
+
+Those deterministic milestones are what make the AI stages safe, testable, and
+useful.

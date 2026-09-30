@@ -1,207 +1,560 @@
-# Studio — Vision
+# Studio - Vision
 
 ## 1. Purpose
 
-Studio is a local-first, zero-cost AI-assisted 2D animation production engine.
+Studio is a local-first AI-assisted animation production system.
 
-Its purpose is to allow a creative director/software engineer to describe educational or
-narrative content at a high level and have Studio transform that intent into deterministic,
-repeatable animation work executed by Blender.
+Its purpose is to allow a storyteller/software engineer to describe an original
+story, scene, or performance at a high level and progressively transform that
+creative intent into deterministic, reusable animation executed by Blender.
 
-Studio does not attempt to replace Blender.
+Studio does not replace Blender.
 
-Studio acts as the production orchestration layer above Blender.
+Studio provides the creative planning, production orchestration, validation,
+automation, and reusable animation systems above Blender.
 
 The core principle is:
 
-> AI decides WHAT should happen. Python decides HOW it happens. Blender executes it.
+> AI decides WHAT. Python decides HOW. Blender executes.
+
+The creator remains responsible for storytelling, creative supervision, review,
+and final approval.
 
 ---
 
-## 2. Products
+## 2. Product Direction
 
-Studio will eventually support two independent products.
+Studio is being developed as one integrated animation production application.
 
-### FunLearn
+The primary target is original narrative animation supporting:
 
-Educational animated shorts for children.
-
-Target:
-
-- 45–60 seconds
-- YouTube Shorts
-- English initially
-- simple educational topics
-- limited 2D animation
-- human review before publication
-
-### Anime Studio
-
-Narrative 2D anime-style episodes.
-
-Target:
-
-- approximately 3–10 minutes initially
-- YouTube distribution
-- screenplay-driven production
+- short scenes
+- dialogue
+- emotional acting
+- multiple characters
 - reusable characters
-- multi-scene and eventually multi-character stories
+- reusable environments
+- action
+- travel
+- political and dramatic scenes
+- battles and large-scale events
+- multi-scene stories
+- episodes
+- eventually long-form narrative productions
 
-The two products share the Studio kernel.
+The system must grow toward long-form production through small proven vertical
+slices rather than attempting full episode generation immediately.
 
-Neither product imports the other.
+The previous FunLearn educational-short concept is legacy functionality.
+
+Existing Lesson and Content code remains temporarily for migration safety but
+must not drive new architecture or feature development.
 
 ---
 
-## 3. Core Philosophy
+## 3. Visual Direction
 
-Studio is not an AI video generator.
+Studio targets an original visual language combining traditional animation
+production principles with modern digital presentation.
+
+The system should support three production modes:
+
+- 2D
+- 2.5D
+- HYBRID
+
+A production may use different modes for different shots.
+
+### Traditional influences
+
+Studio should make deliberate use of:
+
+- hand-drawn visual language
+- strong silhouettes
+- strong key poses
+- held drawings and held poses
+- limited animation
+- animation on reduced exposures where appropriate
+- expressive facial acting
+- reusable cycles
+- cel-style shading
+- painted or illustrated-looking backgrounds
+- impact frames
+- selective motion
+- deliberate composition
+- economical television-animation techniques
+
+### Modern presentation
+
+Traditional animation principles are combined with:
+
+- clean digital output
+- modern cinematography
+- controlled camera movement
+- parallax
+- depth
+- modern color management
+- lighting
+- compositing
+- atmospheric effects
+- sound design
+- voice
+- music
+- editing
+- high-quality final assembly
+
+The target is not to reproduce the exact style of any existing anime, artist,
+studio, or historical production.
+
+Studio must develop its own reusable visual identity.
+
+---
+
+## 4. Production Philosophy
+
+Studio is not a frame-by-frame generative video system.
 
 It is a deterministic animation production system assisted by AI.
 
-The system must prefer:
+The system prefers:
 
-- deterministic animation
-- reusable character rigs
-- reusable actions
-- structured data
+- reusable character identities
+- reusable rigs
+- reusable animation clips
+- procedural animation
+- structured plans
+- explicit capabilities
 - validated intermediate representations
-- local execution
-- low resource consumption
-- explicit failure handling
+- deterministic execution
+- shot-based rendering
+- asset reuse
+- recoverable production stages
 - human review
 
 over:
 
-- frame-by-frame AI generation
-- opaque AI video models
-- cloud rendering
+- arbitrary AI-generated Blender code
 - uncontrolled model output
-- large infrastructure
-- unnecessary abstraction
+- regenerating characters every frame
+- opaque video generation
+- unnecessary cloud dependencies
+- rendering entire episodes as one job
+- unnecessary infrastructure
 
 ---
 
-## 4. Animation Representation
+## 5. AI Production Roles
 
-The Animation Intermediate Representation (Animation IR) is the boundary between
-creative AI output and Blender execution.
+Studio separates creative responsibilities into specialized logical roles.
 
-The LLM must never generate Blender Python or Blender commands.
+These roles do not require separate language models.
 
-Instead, the LLM produces structured animation intent.
+The same local model may initially perform several roles through different
+prompts, schemas, tools, and application services.
 
-Example:
+### Director Agent
 
-    {
-      "scene_id": "scene_04",
-      "duration": 6.0,
-      "characters": [
-        {
-          "id": "momo",
-          "actions": [
-            {
-              "type": "walk",
-              "direction": "right",
-              "duration": 2.5
-            },
-            {
-              "type": "wave",
-              "hand": "right",
-              "duration": 1.5
-            }
-          ]
-        }
-      ],
-      "camera": {
-        "shot": "medium",
-        "movement": "slow_push"
-      }
-    }
+The Director determines what should happen.
 
-Python validates this representation before Blender receives it.
+Responsibilities will progressively include:
+
+- screenplay/story interpretation
+- sequence planning
+- scene planning
+- shot breakdown
+- staging
+- composition
+- camera intent
+- pacing
+- emotional intent
+- characters involved
+- high-level action
+- visual mode
+- animation strategy
+- narrative importance
+- motion budget
+
+The Director does not directly manipulate Blender.
+
+### Animator Agent
+
+The Animator determines how the performance should move.
+
+Responsibilities will progressively include:
+
+- action selection
+- poses
+- timing
+- gaze
+- eye movement
+- head movement
+- body movement
+- facial expression
+- action transitions
+- acting
+- reusable animation composition
+- procedural animation intent
+- camera animation
+
+The Animator may request only capabilities available to the production system.
+
+### Voice Actor Agent
+
+The Voice Actor Agent is a later production role.
+
+One logical agent will manage:
+
+- dialogue performance
+- character voice identity
+- emotion
+- pauses
+- delivery
+- multiple characters
+- eventually multiple languages
+
+The agent decides performance intent.
+
+A replaceable local TTS engine generates audio.
+
+### Music Director Agent
+
+The Music Director Agent is a later production role.
+
+It will plan:
+
+- scoring intent
+- ambience
+- recurring themes
+- character motifs
+- location motifs
+- cues
+- transitions
+- tension and release
+- dialogue-aware music placement
+- volume intent
+
+Music planning and music generation remain separate concerns.
 
 ---
 
-## 5. Visual Target
+## 6. Animation Strategy and Motion Budget
 
-The visual target is not photorealism or modern high-frame-rate animation.
+Not every shot deserves or requires the same amount of animation.
 
-The intended style is:
+Studio should eventually select the least expensive visual technique that
+communicates the story beat effectively.
 
-- clean vector-like line work
-- flat cel shading
-- hard shadow boundaries
-- warm retro colors
-- strong poses
-- expressive but limited character animation
-- painted-looking static backgrounds
-- camera movement
-- restrained post-processing
-- film grain
-- subtle visual imperfections
+Potential strategies include:
 
-The aesthetic target is inspired by the visual language of early television anime,
-while remaining an original Studio production style.
+- HOLD
+- KEY_POSE
+- REACTION
+- DIALOGUE
+- CAMERA_OVER_STILL
+- PAN_BACKGROUND
+- LOOP
+- WALK_CYCLE
+- RUN_CYCLE
+- PARALLAX
+- SILHOUETTE
+- MONTAGE
+- IMPACT_FRAME
+- ACTION
+- HERO_ACTION
 
-Studio does not attempt to reproduce another studio's exact artwork.
+Higher-level production strategies may include:
+
+- HELD_ACTING
+- REUSABLE_ACTION
+- CAMERA_OVER_ENVIRONMENT
+- HERO_ANIMATION
+
+The Director eventually assigns animation effort according to:
+
+- narrative importance
+- emotional importance
+- required movement
+- shot duration
+- visual mode
+- available capabilities
+- production cost
+
+This motion-budget philosophy is essential for practical long-form animation.
 
 ---
 
-## 6. Hardware Philosophy
+## 7. Animation Representation
 
-Studio is designed around constrained local hardware.
+Animation IR is the trust boundary between AI-generated animation intent and
+execution.
 
-The initial target machine has:
+The AI must never generate arbitrary Blender Python for execution.
 
-- Windows 11
-- 8 GB RAM
-- CPU-first execution
-- approximately 2 GB discrete GPU memory
-- integrated graphics
-- no dedicated modern rendering GPU
+The intended flow is:
 
-Therefore Studio must:
+    Creative Intent
+        ->
+    Director Plan
+        ->
+    Animation Plan
+        ->
+    Animation IR
+        ->
+    Structural Validation
+        ->
+    Capability Validation
+        ->
+    Deterministic Animation Toolkit
+        ->
+    Blender
 
-- execute expensive processes sequentially
+Animation IR remains deliberately execution-oriented.
+
+Higher-level cinematic and acting concepts belong in Director and Animation
+plans rather than forcing every concept into the low-level IR.
+
+---
+
+## 8. Character Philosophy
+
+A character is a reusable production identity.
+
+Character identity must remain separate from character appearance variants.
+
+Conceptually:
+
+    CharacterIdentity
+        ->
+    CharacterVariant
+        ->
+    Rig / Visual Asset
+        ->
+    Capabilities
+
+A persistent identity may later appear with different:
+
+- clothing
+- hairstyles
+- ages
+- physiques
+- accessories
+- settings
+- project-specific visual treatments
+
+Real-person-inspired characters may eventually use the same architecture.
+
+A real person must not be regenerated independently for every scene or frame.
+
+Initial asset preparation and approval may remain partially manual.
+
+---
+
+## 9. World Philosophy
+
+Worlds and locations are reusable production assets.
+
+Conceptually:
+
+    World
+        ->
+    Location
+        ->
+    Environment
+        ->
+    Props
+        ->
+    Spawn Points
+        ->
+    Camera Anchors
+        ->
+    Lighting Presets
+
+A school, city, castle, battlefield, house, or street should be reusable across
+shots rather than rebuilt from scratch every time.
+
+2D backgrounds, 3D environments, and hybrid environments may coexist.
+
+---
+
+## 10. Long-Form Production
+
+Long-form animation is decomposed as:
+
+    Project
+        ->
+    Episode
+        ->
+    Sequence
+        ->
+    Scene
+        ->
+    Shot
+
+The system renders recoverable units.
+
+A failed shot must not invalidate already completed shots.
+
+Intermediate artifacts are stored on disk and may be cached.
+
+FFmpeg eventually assembles:
+
+    shots
+        ->
+    scenes
+        ->
+    sequences
+        ->
+    episode
+
+An entire episode must never need to remain in memory.
+
+---
+
+## 11. Battle and Crowd Philosophy
+
+Large battles must not require an LLM to individually animate every participant.
+
+The long-term architecture should support higher-level deterministic
+choreography primitives such as:
+
+- group movement
+- formation movement
+- crowd fleeing
+- march cycles
+- charge actions
+- ranged volleys
+- reusable combat exchanges
+- two-character duels
+- impact events
+- smoke and effects
+- reaction shots
+- commander shots
+
+Large-scale action should combine:
+
+- reusable cycles
+- deterministic choreography
+- selective hero animation
+- camera language
+- editing
+- silhouettes
+- effects
+- impact frames
+- sound
+
+This allows perceived scale without requiring continuous unique animation for
+every character.
+
+---
+
+## 12. Hardware Philosophy
+
+Studio begins on constrained local hardware.
+
+Therefore the system must:
+
+- remain local-first
+- keep models replaceable
+- execute expensive stages sequentially
+- use lightweight local LLMs
+- prefer deterministic animation over generative video
 - render shot-by-shot
-- use proxy renders before final renders
-- target 720p initially
-- use limited animation exposure
-- avoid loading entire episodes into memory
+- use inexpensive proxy renders
 - release resources between stages
+- cache reusable results
+- target modest resolutions during development
+- avoid loading entire productions into memory
+
+A hardware upgrade may improve speed and quality later, but the architecture
+must not require one to prove the core system.
 
 ---
 
-## 7. Human Review
+## 13. Human Role
 
-Studio will never automatically publish generated content.
+Studio is designed to reduce repetitive animation work, not remove creative
+ownership.
 
-The production pipeline ends at a human review checkpoint.
+The human remains:
 
-The human must be able to inspect:
+- storyteller
+- software engineer
+- creative supervisor
+- asset approver
+- continuity reviewer
+- final quality reviewer
 
-- lesson/story content
-- narration
-- scene breakdown
-- generated visuals
-- animation
-- final audio/video
+The user should not need to manually keyframe every routine scene.
 
-before publication.
+Manual intervention remains acceptable for:
+
+- initial asset creation
+- unusual character interactions
+- complex choreography
+- exceptional acting
+- continuity corrections
+- final artistic refinement
 
 ---
 
-## 8. Success Criteria
+## 14. Development Strategy
 
-Studio succeeds when a developer can provide a high-level creative request and receive
-a reproducible animation project without manually animating every frame.
+Development proceeds from deterministic foundations toward AI orchestration.
 
-The first meaningful milestone is not a complete animation studio.
+The order is:
 
-The first meaningful milestone is:
+    deterministic tools
+        ->
+    deterministic character animation
+        ->
+    deterministic multi-action scene
+        ->
+    AI Animator
+        ->
+    AI Director
+        ->
+    short AI-directed production
+        ->
+    reusable characters and worlds
+        ->
+    voice
+        ->
+    music
+        ->
+    longer productions
 
-> A validated Animation IR can deterministically drive one reusable Blender character
-> through a complete shot.
+Autonomous AI behavior must never be introduced before the underlying
+deterministic capability exists.
 
-Everything else is built around proving and expanding that capability.
+---
+
+## 15. Success Criteria
+
+The first major success is:
+
+> A deterministic animation plan drives Blender to produce a short animated
+> shot without manual keyframing during execution.
+
+The next major success is:
+
+> A local Animator Agent converts natural-language direction into validated
+> executable animation.
+
+The next major success is:
+
+> A local Director Agent and Animator Agent together produce a coherent
+> 5-15 second scene.
+
+Later milestones expand toward:
+
+- 30-60 second scenes
+- multi-character scenes
+- reusable worlds
+- voice
+- music
+- 3-5 minute productions
+- approximately 10-minute sequences
+- multi-scene episodes
+- long-form original stories
+
+Each milestone must be earned by a reliable previous milestone.
