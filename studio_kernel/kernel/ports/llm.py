@@ -13,12 +13,14 @@ class LLMPort(Protocol):
         prompt: str,
         *,
         system_prompt: str | None = None,
+        response_schema: dict[str, object] | None = None,
     ) -> str:
         """Generate text from a prompt.
 
         Args:
             prompt: User/application prompt supplied to the model.
             system_prompt: Optional instruction defining model behavior.
+            response_schema: Optional JSON Schema constraining the response.
 
         Returns:
             The generated text.

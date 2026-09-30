@@ -53,12 +53,14 @@ class OllamaAdapter:
         prompt: str,
         *,
         system_prompt: str | None = None,
+        response_schema: dict[str, object] | None = None,
     ) -> str:
         """Generate text using the configured Ollama model.
 
         Args:
             prompt: User/application prompt.
             system_prompt: Optional system instruction.
+            response_schema: Optional JSON Schema used to constrain output.
 
         Returns:
             Generated text.
@@ -77,6 +79,17 @@ class OllamaAdapter:
 
         if system_prompt is not None:
             payload["system"] = system_prompt
+
+        if response_schema is not None:
+            if not isinstance(response_schema, dict) or not response_schema:
+                raise ValueError(
+                    "LLM response schema must be a non-empty mapping."
+                )
+
+            payload["format"] = response_schema
+            payload["options"] = {
+                "temperature": 0,
+            }
 
         try:
             response = self._http_post(
