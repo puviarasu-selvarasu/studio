@@ -310,6 +310,21 @@ def step_forward(
         channels=("location",),
     )
 
+    for bone_name in (
+        "thigh.L",
+        "thigh.R",
+    ):
+        set_bone_rotation_degrees(
+            armature_name,
+            bone_name,
+            (0.0, 0.0, 0.0),
+        )
+        insert_bone_rotation_keyframe(
+            armature_name,
+            bone_name,
+            start_frame,
+        )
+
     set_bone_rotation_degrees(
         armature_name,
         "thigh.L",

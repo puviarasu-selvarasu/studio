@@ -187,3 +187,26 @@ def test_step_forward_preserves_existing_world_position() -> None:
     assert "start_location[0]" in source
     assert "start_location[1] - distance" in source
     assert "start_location[2]" in source
+
+def test_step_forward_keys_leg_pose_at_action_start() -> None:
+    tree = _tree()
+
+    step_forward = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "step_forward"
+    )
+
+    start_keyframes = [
+        node
+        for node in ast.walk(step_forward)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "insert_bone_rotation_keyframe"
+        and len(node.args) >= 3
+        and isinstance(node.args[2], ast.Name)
+        and node.args[2].id == "start_frame"
+    ]
+
+    assert start_keyframes
