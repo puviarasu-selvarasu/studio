@@ -3,10 +3,9 @@
     "momo": {
       "actions": [
         "idle",
-        "blink",
+        "turn_head",
         "wave",
-        "walk",
-        "talk"
+        "step_forward"
       ]
     }
   }

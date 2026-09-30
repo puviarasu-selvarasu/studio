@@ -1,4 +1,4 @@
-﻿"""Tests for the Studio character capability registry."""
+"""Tests for the Studio character capability registry."""
 
 from __future__ import annotations
 
@@ -38,10 +38,9 @@ def test_momo_capability_contract() -> None:
     assert isinstance(momo, dict)
     assert momo["actions"] == [
         "idle",
-        "blink",
+        "turn_head",
         "wave",
-        "walk",
-        "talk",
+        "step_forward",
     ]
 
 

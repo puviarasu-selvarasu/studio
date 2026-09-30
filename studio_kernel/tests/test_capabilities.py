@@ -1,4 +1,4 @@
-﻿"""Tests for the capability domain model and loader."""
+"""Tests for the capability domain model and loader."""
 
 from __future__ import annotations
 
@@ -61,10 +61,9 @@ def test_load_real_capability_registry() -> None:
     assert momo is not None
     assert momo.actions == (
         "idle",
-        "blink",
+        "turn_head",
         "wave",
-        "walk",
-        "talk",
+        "step_forward",
     )
 
 
