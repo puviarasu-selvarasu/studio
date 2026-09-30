@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Create the Studio command-line argument parser.
+    """Create the Studio command-line argument parser."""
 
-    Returns:
-        Configured argument parser.
-    """
     parser = argparse.ArgumentParser(
         prog="studio",
         description=(
-            "Studio — local-first AI-assisted 2D animation "
+            "Studio - local-first AI-assisted animation "
             "production engine."
         ),
     )
@@ -28,16 +26,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> int:
-    """Run the Studio command-line entry point.
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run Studio."""
 
-    Returns:
-        Process exit code.
-    """
     parser = build_parser()
-    parser.parse_args()
+    parser.parse_args(argv)
 
-    return 0
+    from studio_ui.app import run
+
+    return run(argv=[])
 
 
 if __name__ == "__main__":
