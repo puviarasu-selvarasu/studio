@@ -35,6 +35,20 @@ def require_object(name: str) -> bpy.types.Object:
     return obj
 
 
+def get_location(
+    object_name: str,
+) -> Vector3:
+    """Return an object's current world-space location."""
+
+    obj = require_object(object_name)
+
+    return (
+        float(obj.location.x),
+        float(obj.location.y),
+        float(obj.location.z),
+    )
+
+
 def set_location(
     object_name: str,
     location: Vector3,

@@ -33,6 +33,7 @@ def _functions() -> set[str]:
 def test_level0_exposes_only_expected_public_primitives() -> None:
     expected = {
         "require_object",
+        "get_location",
         "set_location",
         "set_rotation_degrees",
         "set_scale",
