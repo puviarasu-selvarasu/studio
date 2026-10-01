@@ -42,18 +42,23 @@ from kernel.adapters.blender.camera_direction import (
     CameraDirectionCommand,
     compile_camera_direction,
 )
+from kernel.adapters.blender.character_builder import (
+    build_character,
+)
 from kernel.adapters.blender.semantic_dispatcher import (
     compile_animation_scene,
     execute_animation_scene,
 )
+from kernel.characters.production import (
+    CHARACTER_PRODUCTION_FILENAME,
+    CharacterProductionSpec,
+    CharacterProductionSpecError,
+    character_production_from_json,
+)
 from kernel.adapters.blender.deterministic_shot import (
     clear_scene,
     create_camera,
-    create_debug_body,
     create_ground,
-)
-from kernel.adapters.blender.humanoid_rig import (
-    create_humanoid_armature,
 )
 from kernel.adapters.blender.toolkit_level0 import (
     configure_timeline,
@@ -198,6 +203,60 @@ def _number(
     return float(
         value
     )
+
+
+def load_character_production(
+    production_path: Path,
+) -> CharacterProductionSpec:
+    """Load one separately bound trusted character-production contract."""
+
+    try:
+        raw_json = production_path.read_text(
+            encoding="utf-8"
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            "Unable to read character production contract: "
+            + str(exc)
+        ) from exc
+
+    try:
+        return character_production_from_json(
+            raw_json
+        )
+    except CharacterProductionSpecError as exc:
+        raise RuntimeError(
+            "Invalid character production contract: "
+            + str(exc)
+        ) from exc
+
+
+def validate_character_production_binding(
+    animation_scene: AnimationScene,
+    production_spec: CharacterProductionSpec,
+) -> None:
+    """Bind production identity to Animation IR without expanding the IR."""
+
+    if len(
+        animation_scene.characters
+    ) != 1:
+        raise RuntimeError(
+            "AI shot requires exactly one character "
+            "for character-production binding."
+        )
+
+    animation_character = (
+        animation_scene.characters[0]
+    )
+
+    if (
+        animation_character.character_id
+        != production_spec.character_id
+    ):
+        raise RuntimeError(
+            "Character production ID does not match "
+            "Animation IR character ID."
+        )
 
 
 def load_animation_scene(
@@ -578,9 +637,63 @@ def style_camera_framing(
         ) from exc
 
 
+def retarget_camera_for_character(
+    command: CameraDirectionCommand,
+    production_spec: CharacterProductionSpec,
+) -> CameraDirectionCommand:
+    """Retarget bounded camera framing to a production-character focus anchor."""
+
+    if (
+        production_spec.production_profile_id
+        != "momo_default_v1"
+    ):
+        return command
+
+    focus_heights = {
+        "wide": 1.25,
+        "medium": 1.90,
+        "close_up": 2.65,
+    }
+
+    try:
+        focus_height = focus_heights[
+            command.framing
+        ]
+    except KeyError as exc:
+        raise RuntimeError(
+            "Unsupported production-character framing: "
+            + command.framing
+        ) from exc
+
+    start_target = (
+        command.start_target[0],
+        command.start_target[1],
+        focus_height,
+    )
+
+    end_target = (
+        command.end_target[0],
+        command.end_target[1],
+        focus_height,
+    )
+
+    return CameraDirectionCommand(
+        framing=command.framing,
+        camera_intent=command.camera_intent,
+        pacing=command.pacing,
+        start_location=command.start_location,
+        end_location=command.end_location,
+        start_target=start_target,
+        end_target=end_target,
+        start_frame=command.start_frame,
+        end_frame=command.end_frame,
+    )
+
+
 def build_ai_shot(
     animation_scene: AnimationScene,
     *,
+    production_spec: CharacterProductionSpec,
     camera_plan: tuple[
         str,
         str,
@@ -592,6 +705,11 @@ def build_ai_shot(
     CameraDirectionCommand | None,
 ]:
     """Build the rig and execute trusted character and camera intent."""
+
+    validate_character_production_binding(
+        animation_scene,
+        production_spec,
+    )
 
     end_frame = timeline_end_frame(
         animation_scene
@@ -626,21 +744,32 @@ def build_ai_shot(
             timeline_end_frame=end_frame,
         )
 
+        camera_command = retarget_camera_for_character(
+            camera_command,
+            production_spec,
+        )
+
         apply_camera_direction(
             camera_name=camera.name,
             command=camera_command,
         )
 
-    rig = create_humanoid_armature(
-        RIG_NAME
+    built_character = build_character(
+        production_spec
     )
 
-    body_parts = create_debug_body(
-        rig
+    rig_name = (
+        built_character.armature.name
+    )
+
+    # Keep existing generic cel quantization on anatomical meshes only.
+    # Hair and outfit retain their character-specific production palette.
+    body_parts = (
+        built_character.body_parts
     )
 
     set_location(
-        RIG_NAME,
+        rig_name,
         (
             0.0,
             0.0,
@@ -650,7 +779,7 @@ def build_ai_shot(
 
     commands = execute_animation_scene(
         animation_scene,
-        armature_name=RIG_NAME,
+        armature_name=rig_name,
         fps=FPS,
     )
 
@@ -711,6 +840,11 @@ def main() -> None:
         ir_path
     )
 
+    production_spec = load_character_production(
+        blend_path.parent
+        / CHARACTER_PRODUCTION_FILENAME
+    )
+
     camera_plan = (
         load_director_camera_plan(
             camera_plan_path,
@@ -728,7 +862,12 @@ def main() -> None:
         camera_command,
     ) = build_ai_shot(
         animation_scene,
+        production_spec=production_spec,
         camera_plan=camera_plan,
+    )
+
+    print(
+        "STUDIO_CHARACTER_PRODUCTION_EXECUTED_OK"
     )
 
     configure_workbench_cel_preview(

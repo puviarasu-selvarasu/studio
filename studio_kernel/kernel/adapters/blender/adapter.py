@@ -6,6 +6,13 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from kernel.characters.production import (
+    CHARACTER_PRODUCTION_FILENAME,
+    CharacterProductionSpec,
+    CharacterProductionSpecError,
+    character_production_to_json,
+)
+
 
 class BlenderAdapterError(RuntimeError):
     """Raised when controlled Blender execution fails."""
@@ -213,9 +220,19 @@ class BlenderAdapter:
         animation_ir_path: Path,
         output_directory: Path,
         *,
+        character_production: CharacterProductionSpec,
         camera_plan_path: Path | None = None,
     ) -> BlenderShotResult:
         """Execute trusted Animation IR in headless Blender."""
+
+        if not isinstance(
+            character_production,
+            CharacterProductionSpec,
+        ):
+            raise BlenderAdapterError(
+                "character_production must be "
+                "CharacterProductionSpec."
+            )
 
         if not self._blender_executable.is_file():
             raise BlenderAdapterError(
@@ -246,6 +263,29 @@ class BlenderAdapter:
             parents=True,
             exist_ok=True,
         )
+
+        character_production_path = (
+            output_directory
+            / CHARACTER_PRODUCTION_FILENAME
+        )
+
+        try:
+            character_production_path.write_text(
+                character_production_to_json(
+                    character_production
+                )
+                + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+        except (
+            OSError,
+            CharacterProductionSpecError,
+        ) as exc:
+            raise BlenderAdapterError(
+                "Unable to persist character production contract: "
+                + str(exc)
+            ) from exc
 
         blend_path = (
             output_directory

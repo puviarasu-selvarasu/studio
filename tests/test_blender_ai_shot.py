@@ -121,6 +121,7 @@ def test_adapter_launches_ai_shot_script(
         result = adapter.create_ai_shot(
             ir_path,
             output,
+            character_production=_phase7d_production_spec(),
         )
 
     command = run_mock.call_args.args[0]
@@ -175,6 +176,7 @@ def test_adapter_rejects_missing_ir(
         adapter.create_ai_shot(
             tmp_path / "missing.json",
             tmp_path / "output",
+            character_production=_phase7d_production_spec(),
         )
 
 
@@ -240,6 +242,7 @@ def test_adapter_requires_ai_success_marker(
             adapter.create_ai_shot(
                 ir_path,
                 tmp_path / "output",
+                character_production=_phase7d_production_spec(),
             )
 
 def test_ai_shot_accepts_trusted_director_camera_plan() -> None:
@@ -338,6 +341,7 @@ def test_adapter_passes_director_camera_plan(
             ir_path,
             output,
             camera_plan_path=camera_path,
+            character_production=_phase7d_production_spec(),
         )
 
     assert result.blend_path.is_file()
@@ -373,6 +377,7 @@ def test_adapter_rejects_missing_director_camera_plan(
                 tmp_path
                 / "missing_camera.json"
             ),
+            character_production=_phase7d_production_spec(),
         )
 
 
@@ -446,6 +451,7 @@ def test_adapter_requires_director_camera_execution_marker(
                 ir_path,
                 tmp_path / "output",
                 camera_plan_path=camera_path,
+                character_production=_phase7d_production_spec(),
             )
 
 def test_ai_shot_integrates_visual_style_execution() -> None:
@@ -501,3 +507,100 @@ def test_ai_shot_reports_integrated_visual_style_markers() -> None:
 
     assert "eval(" not in source
     assert "exec(" not in source
+
+
+def _phase7d_production_spec():
+    from kernel.characters import (
+        MOMO_DEFAULT_VARIANT,
+        MOMO_IDENTITY,
+        compile_character_production,
+    )
+
+    return compile_character_production(
+        MOMO_IDENTITY,
+        MOMO_DEFAULT_VARIANT,
+    )
+
+
+def test_ai_shot_uses_trusted_production_character_builder() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "build_character" in source
+    assert "load_character_production" in source
+
+    assert (
+        "validate_character_production_binding"
+        in source
+    )
+
+    assert "create_debug_body(" not in source
+    assert "create_humanoid_armature(" not in source
+
+    assert (
+        "STUDIO_CHARACTER_PRODUCTION_EXECUTED_OK"
+        in source
+    )
+
+
+def test_ai_shot_adapter_requires_explicit_production_spec() -> None:
+    import inspect
+
+    from kernel.adapters.blender.adapter import (
+        BlenderAdapter,
+    )
+
+    signature = inspect.signature(
+        BlenderAdapter.create_ai_shot
+    )
+
+    parameter = signature.parameters[
+        "character_production"
+    ]
+
+    assert (
+        parameter.kind
+        is inspect.Parameter.KEYWORD_ONLY
+    )
+
+    assert (
+        parameter.default
+        is inspect.Parameter.empty
+    )
+
+    source = Path(
+        inspect.getsourcefile(
+            BlenderAdapter
+        )
+    ).read_text(
+        encoding="utf-8"
+    )
+
+    assert "character_production_to_json" in source
+    assert "CHARACTER_PRODUCTION_FILENAME" in source
+
+
+def test_ai_shot_retargets_camera_to_character_focus() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "def retarget_camera_for_character("
+        in source
+    )
+
+    assert '"close_up": 2.65' in source
+    assert '"medium": 1.90' in source
+    assert '"wide": 1.25' in source
+
+    assert (
+        "retarget_camera_for_character("
+        in source
+    )
+
+    assert (
+        "production_spec.production_profile_id"
+        in source
+    )
