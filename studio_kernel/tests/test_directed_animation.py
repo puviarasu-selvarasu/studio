@@ -396,3 +396,114 @@ def test_handoff_preserves_trusted_request_identity() -> None:
         == result.animation_scene.duration_seconds
         == 8.0
     )
+
+
+def test_director_and_animator_receive_same_persistent_identity_context() -> None:
+    llm = SequencedFakeLLM(
+        (
+            _director_response(),
+            _animator_response(),
+        )
+    )
+
+    _service(
+        llm
+    ).generate(
+        "Momo recognizes an old friend.",
+        scene_id="phase4c_scene_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    assert len(llm.calls) == 2
+
+    director_prompt = llm.calls[0][0]
+    animator_prompt = llm.calls[1][0]
+
+    for prompt in (
+        director_prompt,
+        animator_prompt,
+    ):
+        assert "Persistent character identity context:" in prompt
+        assert "Display name: Momo" in prompt
+        assert "recognizable silhouette" in prompt
+        assert "deliberate movement" in prompt
+
+
+def test_directed_animation_forwards_one_variant_to_both_agents() -> None:
+    from kernel.characters import (
+        CharacterCatalog,
+        CharacterVariant,
+        CharacterVariantAppearance,
+        MOMO_DEFAULT_VARIANT,
+        MOMO_IDENTITY,
+    )
+
+    winter = CharacterVariant(
+        character_id="momo",
+        variant_id="winter",
+        display_name="Momo - Winter",
+        appearance=CharacterVariantAppearance(
+            summary="Momo wearing her winter appearance.",
+            descriptors=(
+                "winter coat",
+                "winter scarf",
+            ),
+        ),
+    )
+
+    catalog = CharacterCatalog(
+        identities=(
+            MOMO_IDENTITY,
+        ),
+        variants=(
+            MOMO_DEFAULT_VARIANT,
+            winter,
+        ),
+    )
+
+    llm = SequencedFakeLLM(
+        (
+            _director_response(),
+            _animator_response(),
+        )
+    )
+
+    registry = _registry()
+
+    service = DirectedAnimationService(
+        DirectorAgent(
+            llm,
+            registry,
+            catalog=catalog,
+        ),
+        AnimatorAgent(
+            llm,
+            registry,
+            catalog=catalog,
+        ),
+    )
+
+    result = service.generate(
+        "Momo recognizes an old friend during winter.",
+        scene_id="phase4c_scene_1",
+        character_id="momo",
+        duration_seconds=8.0,
+        variant_id="winter",
+    )
+
+    assert len(llm.calls) == 2
+
+    director_prompt = llm.calls[0][0]
+    animator_prompt = llm.calls[1][0]
+
+    for prompt in (
+        director_prompt,
+        animator_prompt,
+    ):
+        assert "Variant ID: winter" in prompt
+        assert "Momo - Winter" in prompt
+        assert "winter coat" in prompt
+
+    assert result.director_plan.character_id == "momo"
+    assert result.animator_plan.character_id == "momo"

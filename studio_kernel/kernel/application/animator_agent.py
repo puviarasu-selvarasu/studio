@@ -18,6 +18,14 @@ from kernel.capabilities.validator import (
     CapabilityValidationError,
     validate_animation_capabilities,
 )
+from kernel.characters.catalog import (
+    CharacterCatalog,
+    DEFAULT_CHARACTER_CATALOG,
+)
+from kernel.characters.models import (
+    CharacterIdentity,
+    CharacterVariant,
+)
 from kernel.ports.llm import LLMPort
 
 
@@ -45,11 +53,13 @@ class AnimatorAgent:
         self,
         llm: LLMPort,
         registry: CapabilityRegistry,
+        catalog: CharacterCatalog = DEFAULT_CHARACTER_CATALOG,
     ) -> None:
         """Initialize the Animator Agent."""
 
         self._llm = llm
         self._registry = registry
+        self._catalog = catalog
 
     def generate_plan(
         self,
@@ -58,6 +68,7 @@ class AnimatorAgent:
         scene_id: str,
         character_id: str,
         duration_seconds: float,
+        variant_id: str = "default",
     ) -> AnimatorPlan:
         """Generate and validate an Animator plan from scene intent."""
 
@@ -76,6 +87,11 @@ class AnimatorAgent:
                 "Character ID must not be empty."
             )
 
+        if not variant_id.strip():
+            raise ValueError(
+                "Variant ID must not be empty."
+            )
+
         if duration_seconds <= 0:
             raise ValueError(
                 "Scene duration must be greater than zero."
@@ -90,12 +106,34 @@ class AnimatorAgent:
                 f"Character '{character_id}' is not registered."
             )
 
+        identity = self._catalog.get_identity(
+            character_id
+        )
+
+        if identity is None:
+            raise AnimatorAgentError(
+                f"Character identity '{character_id}' is not registered."
+            )
+
+        variant = self._catalog.get_variant(
+            character_id,
+            variant_id,
+        )
+
+        if variant is None:
+            raise AnimatorAgentError(
+                "Character variant "
+                f"'{character_id}:{variant_id}' is not registered."
+            )
+
         prompt = self._build_prompt(
             intent=intent,
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
             supported_actions=capability.actions,
+            identity=identity,
+            variant=variant,
         )
 
         response_schema = self._response_schema(
@@ -164,6 +202,7 @@ class AnimatorAgent:
         scene_id: str,
         character_id: str,
         duration_seconds: float,
+        variant_id: str = "default",
     ) -> AnimationScene:
         """Generate trusted Animation IR from natural-language intent."""
 
@@ -172,6 +211,7 @@ class AnimatorAgent:
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
+            variant_id=variant_id,
         )
 
         return animation_scene_from_plan(
@@ -376,6 +416,8 @@ class AnimatorAgent:
         character_id: str,
         duration_seconds: float,
         supported_actions: tuple[str, ...],
+        identity: CharacterIdentity,
+        variant: CharacterVariant,
     ) -> str:
         """Build the constrained Animator planning prompt."""
 
@@ -399,6 +441,19 @@ Create a single-character animation plan.
 Scene ID: {scene_id}
 Character ID: {character_id}
 Scene duration: {duration_seconds} seconds
+
+Persistent character identity context:
+Display name: {identity.display_name}
+Stable appearance: {identity.appearance.summary}
+Appearance anchors: {", ".join(identity.appearance.anchors)}
+Performance identity: {identity.performance.summary}
+Performance traits: {", ".join(identity.performance.traits)}
+
+Selected character variant:
+Variant ID: {variant.variant_id}
+Variant name: {variant.display_name}
+Variant appearance: {variant.appearance.summary}
+Variant descriptors: {", ".join(variant.appearance.descriptors)}
 
 Scene intent:
 {intent}
@@ -441,6 +496,9 @@ Rules:
 - Preserve the requested scene ID exactly.
 - Preserve the requested character ID exactly.
 - Preserve the requested scene duration exactly.
+- Use the persistent performance identity as acting context.
+- Respect the selected character variant exactly as appearance context.
+- Do not invent a new character identity or a different production variant.
 - Return JSON only.
 """.strip()
 

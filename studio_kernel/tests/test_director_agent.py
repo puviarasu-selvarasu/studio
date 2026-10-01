@@ -462,3 +462,152 @@ def test_agent_rejects_changed_duration() -> None:
             character_id="momo",
             duration_seconds=8.0,
         )
+
+
+def test_agent_prompt_includes_persistent_character_identity_context() -> None:
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    agent = DirectorAgent(
+        llm,
+        _registry(),
+    )
+
+    agent.generate_plan(
+        "Momo notices someone important.",
+        scene_id="director_scene_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    prompt = llm.calls[0][0]
+
+    assert "Persistent character identity context:" in prompt
+    assert "Display name: Momo" in prompt
+    assert "recognizable silhouette" in prompt
+    assert "Observant and warm" in prompt
+    assert "deliberate movement" in prompt
+    assert "production variant" in prompt
+
+
+def test_director_rejects_capability_without_character_identity_before_llm() -> None:
+    from kernel.characters import CharacterCatalog
+
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    registry = CapabilityRegistry(
+        characters=(
+            CharacterCapability(
+                character_id="akira",
+                actions=(
+                    "idle",
+                ),
+            ),
+        )
+    )
+
+    agent = DirectorAgent(
+        llm,
+        registry,
+        catalog=CharacterCatalog(),
+    )
+
+    with pytest.raises(
+        DirectorAgentError,
+        match="identity.*not registered",
+    ):
+        agent.generate_plan(
+            "Akira waits quietly.",
+            scene_id="director_scene_identity",
+            character_id="akira",
+            duration_seconds=8.0,
+        )
+
+    assert llm.calls == []
+
+
+def test_director_supports_explicit_character_variant_selection() -> None:
+    from kernel.characters import (
+        CharacterCatalog,
+        CharacterVariant,
+        CharacterVariantAppearance,
+        MOMO_DEFAULT_VARIANT,
+        MOMO_IDENTITY,
+    )
+
+    winter = CharacterVariant(
+        character_id="momo",
+        variant_id="winter",
+        display_name="Momo - Winter",
+        appearance=CharacterVariantAppearance(
+            summary="Momo wearing her winter appearance.",
+            descriptors=(
+                "winter coat",
+                "winter scarf",
+            ),
+        ),
+    )
+
+    catalog = CharacterCatalog(
+        identities=(
+            MOMO_IDENTITY,
+        ),
+        variants=(
+            MOMO_DEFAULT_VARIANT,
+            winter,
+        ),
+    )
+
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    agent = DirectorAgent(
+        llm,
+        _registry(),
+        catalog=catalog,
+    )
+
+    agent.generate_plan(
+        "Momo meets a friend in winter.",
+        scene_id="director_scene_1",
+        character_id="momo",
+        duration_seconds=8.0,
+        variant_id="winter",
+    )
+
+    prompt = llm.calls[0][0]
+
+    assert "Selected character variant:" in prompt
+    assert "Variant ID: winter" in prompt
+    assert "Variant name: Momo - Winter" in prompt
+    assert "winter coat" in prompt
+    assert "winter scarf" in prompt
+
+
+def test_director_rejects_unknown_character_variant_before_llm() -> None:
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    agent = DirectorAgent(
+        llm,
+        _registry(),
+    )
+
+    with pytest.raises(
+        DirectorAgentError,
+        match="variant.*not registered",
+    ):
+        agent.generate_plan(
+            "Momo waits.",
+            scene_id="director_scene_1",
+            character_id="momo",
+            duration_seconds=8.0,
+            variant_id="unknown",
+        )
+
+    assert llm.calls == []

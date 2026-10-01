@@ -51,6 +51,7 @@ class DirectedAnimationService:
         scene_id: str,
         character_id: str,
         duration_seconds: float,
+        variant_id: str = "default",
     ) -> DirectedAnimationResult:
         """Generate Director direction and trusted Animation IR sequentially."""
 
@@ -59,6 +60,7 @@ class DirectedAnimationService:
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
+            variant_id=variant_id,
         )
 
         animator_intent = self._build_animator_intent(
@@ -70,6 +72,7 @@ class DirectedAnimationService:
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
+            variant_id=variant_id,
         )
 
         self._validate_handoff(

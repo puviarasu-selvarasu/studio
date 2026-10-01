@@ -10,6 +10,14 @@ from kernel.application.director_plan import (
 from kernel.capabilities.models import (
     CapabilityRegistry,
 )
+from kernel.characters.catalog import (
+    CharacterCatalog,
+    DEFAULT_CHARACTER_CATALOG,
+)
+from kernel.characters.models import (
+    CharacterIdentity,
+    CharacterVariant,
+)
 from kernel.ports.llm import LLMPort
 
 
@@ -24,11 +32,13 @@ class DirectorAgent:
         self,
         llm: LLMPort,
         registry: CapabilityRegistry,
+        catalog: CharacterCatalog = DEFAULT_CHARACTER_CATALOG,
     ) -> None:
         """Initialize the Director Agent."""
 
         self._llm = llm
         self._registry = registry
+        self._catalog = catalog
 
     def generate_plan(
         self,
@@ -37,6 +47,7 @@ class DirectorAgent:
         scene_id: str,
         character_id: str,
         duration_seconds: float,
+        variant_id: str = "default",
     ) -> DirectorPlan:
         """Generate one validated Director plan."""
 
@@ -55,6 +66,11 @@ class DirectorAgent:
                 "Character ID must not be empty."
             )
 
+        if not variant_id.strip():
+            raise ValueError(
+                "Variant ID must not be empty."
+            )
+
         if duration_seconds <= 0:
             raise ValueError(
                 "Scene duration must be greater than zero."
@@ -69,11 +85,33 @@ class DirectorAgent:
                 f"Character '{character_id}' is not registered."
             )
 
+        identity = self._catalog.get_identity(
+            character_id
+        )
+
+        if identity is None:
+            raise DirectorAgentError(
+                f"Character identity '{character_id}' is not registered."
+            )
+
+        variant = self._catalog.get_variant(
+            character_id,
+            variant_id,
+        )
+
+        if variant is None:
+            raise DirectorAgentError(
+                "Character variant "
+                f"'{character_id}:{variant_id}' is not registered."
+            )
+
         prompt = self._build_prompt(
             scene_intent=scene_intent,
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
+            identity=identity,
+            variant=variant,
         )
 
         try:
@@ -203,6 +241,8 @@ class DirectorAgent:
         scene_id: str,
         character_id: str,
         duration_seconds: float,
+        identity: CharacterIdentity,
+        variant: CharacterVariant,
     ) -> str:
         """Build the constrained Director planning prompt."""
 
@@ -212,6 +252,19 @@ Create one Director plan for a single-character, single-shot scene.
 Scene ID: {scene_id}
 Character ID: {character_id}
 Scene duration: {duration_seconds} seconds
+
+Persistent character identity context:
+Display name: {identity.display_name}
+Stable appearance: {identity.appearance.summary}
+Appearance anchors: {", ".join(identity.appearance.anchors)}
+Performance identity: {identity.performance.summary}
+Performance traits: {", ".join(identity.performance.traits)}
+
+Selected character variant:
+Variant ID: {variant.variant_id}
+Variant name: {variant.display_name}
+Variant appearance: {variant.appearance.summary}
+Variant descriptors: {", ".join(variant.appearance.descriptors)}
 
 Creator scene intent:
 {scene_intent}
@@ -263,6 +316,9 @@ Rules:
 - Preserve the requested scene ID exactly.
 - Preserve the requested character ID exactly.
 - Preserve the requested scene duration exactly.
+- Use the persistent character identity context to keep characterization consistent.
+- Respect the selected character variant exactly as appearance context.
+- Do not invent a new character identity or a different production variant.
 - Use only supported shot values.
 - Keep scene_objective concise.
 - Keep emotion concise.
