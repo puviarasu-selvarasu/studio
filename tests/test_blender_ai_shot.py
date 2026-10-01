@@ -447,3 +447,57 @@ def test_adapter_requires_director_camera_execution_marker(
                 tmp_path / "output",
                 camera_plan_path=camera_path,
             )
+
+def test_ai_shot_integrates_visual_style_execution() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "ANIME_CEL_V1" in source
+
+    assert "apply_anime_cel_v1" in source
+    assert "apply_warm_key_cool_fill" in source
+    assert "create_layered_2_5d_background" in source
+    assert "apply_bold_ink_outline" in source
+    assert "configure_clean_cel_compositor" in source
+    assert "apply_anime_camera_presentation" in source
+
+    assert "configure_workbench_cel_preview" in source
+
+    assert "configure_render(" not in source
+
+
+def test_ai_shot_maps_director_framing_to_visual_style() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "DIRECTOR_TO_STYLE_FRAMING" in source
+
+    assert '"wide": "wide_establishing"' in source
+    assert '"medium": "medium_hero"' in source
+    assert '"close_up": "close_intense"' in source
+
+    assert "style_camera_framing(" in source
+
+
+def test_ai_shot_reports_integrated_visual_style_markers() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "STUDIO_VISUAL_STYLE_APPLIED_OK" in source
+    assert "STUDIO_VISUAL_STYLE=anime_cel_v1" in source
+    assert "STUDIO_RENDER_PROFILE=workbench_cel" in source
+
+    assert (
+        "STUDIO_STYLE_CAMERA_PRESET="
+        in source
+    )
+
+    assert "DirectorAgent" not in source
+    assert "AnimatorAgent" not in source
+    assert "OllamaAdapter" not in source
+
+    assert "eval(" not in source
+    assert "exec(" not in source

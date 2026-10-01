@@ -48,7 +48,6 @@ from kernel.adapters.blender.semantic_dispatcher import (
 )
 from kernel.adapters.blender.deterministic_shot import (
     clear_scene,
-    configure_render,
     create_camera,
     create_debug_body,
     create_ground,
@@ -62,6 +61,18 @@ from kernel.adapters.blender.toolkit_level0 import (
     point_camera_at,
     set_location,
 )
+from kernel.adapters.blender.visual_style_executor import (
+    apply_anime_camera_presentation,
+    apply_anime_cel_v1,
+    apply_bold_ink_outline,
+    apply_warm_key_cool_fill,
+    configure_clean_cel_compositor,
+    configure_workbench_cel_preview,
+    create_layered_2_5d_background,
+)
+from kernel.visual_style import (
+    ANIME_CEL_V1,
+)
 
 
 RIG_NAME = "StudioShotRig"
@@ -71,6 +82,13 @@ FPS = 24
 
 PREVIEW_FPS = 12
 PREVIEW_FRAME_STEP = FPS // PREVIEW_FPS
+
+
+DIRECTOR_TO_STYLE_FRAMING = {
+    "wide": "wide_establishing",
+    "medium": "medium_hero",
+    "close_up": "close_intense",
+}
 
 
 def parse_arguments(
@@ -535,6 +553,31 @@ def render_preview_frames(
     return count
 
 
+def style_camera_framing(
+    camera_plan: tuple[
+        str,
+        str,
+        str,
+    ] | None,
+) -> str:
+    """Map bounded Director framing into bounded Visual Style framing."""
+
+    if camera_plan is None:
+        return "medium_hero"
+
+    framing = camera_plan[0]
+
+    try:
+        return DIRECTOR_TO_STYLE_FRAMING[
+            framing
+        ]
+    except KeyError as exc:
+        raise RuntimeError(
+            "Unsupported Director framing for visual style: "
+            + framing
+        ) from exc
+
+
 def build_ai_shot(
     animation_scene: AnimationScene,
     *,
@@ -560,7 +603,7 @@ def build_ai_shot(
         fps=FPS,
     )
 
-    create_ground()
+    ground = create_ground()
 
     camera = create_camera()
 
@@ -592,7 +635,7 @@ def build_ai_shot(
         RIG_NAME
     )
 
-    create_debug_body(
+    body_parts = create_debug_body(
         rig
     )
 
@@ -609,6 +652,37 @@ def build_ai_shot(
         animation_scene,
         armature_name=RIG_NAME,
         fps=FPS,
+    )
+
+    apply_anime_cel_v1(
+        body_parts=body_parts,
+        ground=ground,
+        style=ANIME_CEL_V1,
+    )
+
+    apply_warm_key_cool_fill(
+        body_parts=body_parts,
+        style=ANIME_CEL_V1,
+    )
+
+    create_layered_2_5d_background(
+        style=ANIME_CEL_V1
+    )
+
+    apply_bold_ink_outline(
+        style=ANIME_CEL_V1
+    )
+
+    configure_clean_cel_compositor(
+        style=ANIME_CEL_V1
+    )
+
+    apply_anime_camera_presentation(
+        camera=camera,
+        style=ANIME_CEL_V1,
+        framing=style_camera_framing(
+            camera_plan
+        ),
     )
 
     return (
@@ -657,8 +731,9 @@ def main() -> None:
         camera_plan=camera_plan,
     )
 
-    configure_render(
-        preview_path
+    configure_workbench_cel_preview(
+        str(preview_path),
+        style=ANIME_CEL_V1,
     )
 
     bpy.context.scene.frame_set(
@@ -689,6 +764,20 @@ def main() -> None:
 
     print("STUDIO_AI_SHOT_OK")
     print("STUDIO_AI_IR_EXECUTED_OK")
+    print("STUDIO_VISUAL_STYLE_APPLIED_OK")
+    print("STUDIO_VISUAL_STYLE=anime_cel_v1")
+    print("STUDIO_RENDER_PROFILE=workbench_cel")
+    print("STUDIO_CEL_LEVELS=3")
+    print("STUDIO_LINE_TREATMENT=BOLD_INK")
+    print("STUDIO_LIGHTING_TREATMENT=WARM_KEY_COOL_FILL")
+    print("STUDIO_BACKGROUND_TREATMENT=LAYERED_2_5D")
+    print("STUDIO_COMPOSITING=CLEAN_CEL")
+    print(
+        "STUDIO_STYLE_CAMERA_PRESET="
+        + style_camera_framing(
+            camera_plan
+        )
+    )
 
     if camera_command is not None:
         print(
