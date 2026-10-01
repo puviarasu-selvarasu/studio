@@ -409,3 +409,252 @@ def test_agent_rejects_changed_duration() -> None:
             character_id="momo",
             duration_seconds=8.0,
         )
+
+def test_agent_prompt_includes_execution_safe_timing() -> None:
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    agent = AnimatorAgent(
+        llm,
+        _registry(),
+    )
+
+    agent.generate_plan(
+        "Momo notices someone and greets them.",
+        scene_id="scene_ai_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    assert len(llm.calls) == 1
+
+    prompt = llm.calls[0][0]
+
+    assert (
+        "Execution-safe minimum action durations:"
+        in prompt
+    )
+
+    assert "idle: at least 0.75 seconds" in prompt
+    assert "turn_head: at least 0.50 seconds" in prompt
+    assert "wave: at least 0.50 seconds" in prompt
+    assert "step_forward: at least 0.50 seconds" in prompt
+
+    assert (
+        "Respect every execution-safe minimum action duration"
+        in prompt
+    )
+
+
+def test_agent_rejects_action_below_execution_safe_minimum() -> None:
+    data = json.loads(
+        _valid_response()
+    )
+
+    data["actions"][0]["duration_seconds"] = 0.5
+
+    agent = AnimatorAgent(
+        FakeLLM(
+            json.dumps(data)
+        ),
+        _registry(),
+    )
+
+    with pytest.raises(
+        AnimatorAgentError,
+        match="execution-safe minimum",
+    ):
+        agent.generate_plan(
+            "Momo waits briefly.",
+            scene_id="scene_ai_1",
+            character_id="momo",
+            duration_seconds=8.0,
+        )
+
+
+def test_agent_accepts_safe_minimum_durations() -> None:
+    data = {
+        "scene_id": "scene_ai_1",
+        "duration_seconds": 8.0,
+        "character_id": "momo",
+        "actions": [
+            {
+                "action": "idle",
+                "start_seconds": 0.0,
+                "duration_seconds": 0.75,
+            },
+            {
+                "action": "turn_head",
+                "start_seconds": 0.75,
+                "duration_seconds": 0.5,
+            },
+            {
+                "action": "wave",
+                "start_seconds": 1.25,
+                "duration_seconds": 0.5,
+            },
+            {
+                "action": "step_forward",
+                "start_seconds": 1.75,
+                "duration_seconds": 0.5,
+            },
+        ],
+    }
+
+    agent = AnimatorAgent(
+        FakeLLM(
+            json.dumps(data)
+        ),
+        _registry(),
+    )
+
+    plan = agent.generate_plan(
+        "Momo notices someone and approaches.",
+        scene_id="scene_ai_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    assert tuple(
+        action.duration_seconds
+        for action in plan.actions
+    ) == (
+        0.75,
+        0.5,
+        0.5,
+        0.5,
+    )
+
+def test_agent_response_schema_has_generation_duration_floor() -> None:
+    llm = FakeLLM(
+        _valid_response()
+    )
+
+    agent = AnimatorAgent(
+        llm,
+        _registry(),
+    )
+
+    agent.generate_plan(
+        "Momo notices someone.",
+        scene_id="scene_ai_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    assert len(llm.calls) == 1
+
+    schema = llm.calls[0][2]
+
+    assert schema is not None
+
+    definitions = schema["$defs"]
+    action_definition = definitions["AnimatorActionPlan"]
+    properties = action_definition["properties"]
+    duration_schema = properties["duration_seconds"]
+
+    assert duration_schema["minimum"] == 0.75
+
+
+def test_agent_retries_once_after_unsafe_timing() -> None:
+    invalid = json.loads(
+        _valid_response()
+    )
+
+    invalid["actions"][1]["duration_seconds"] = 0.25
+
+    responses = [
+        json.dumps(invalid),
+        _valid_response(),
+    ]
+
+    class SequencedLLM:
+        def __init__(self) -> None:
+            self.calls: list[
+                tuple[
+                    str,
+                    str | None,
+                    dict[str, object] | None,
+                ]
+            ] = []
+
+        def generate(
+            self,
+            prompt: str,
+            *,
+            system_prompt: str | None = None,
+            response_schema: dict[str, object] | None = None,
+        ) -> str:
+            self.calls.append(
+                (
+                    prompt,
+                    system_prompt,
+                    response_schema,
+                )
+            )
+
+            if not responses:
+                raise RuntimeError(
+                    "No fake LLM response remains."
+                )
+
+            return responses.pop(0)
+
+    llm = SequencedLLM()
+
+    agent = AnimatorAgent(
+        llm,
+        _registry(),
+    )
+
+    plan = agent.generate_plan(
+        "Momo notices someone and responds.",
+        scene_id="scene_ai_1",
+        character_id="momo",
+        duration_seconds=8.0,
+    )
+
+    assert len(llm.calls) == 2
+
+    assert (
+        "CORRECTION REQUIRED:"
+        in llm.calls[1][0]
+    )
+
+    assert (
+        "use at least 0.75 seconds for every action"
+        in llm.calls[1][0]
+    )
+
+    assert plan.scene_id == "scene_ai_1"
+
+
+def test_agent_timing_retry_is_bounded_to_one_retry() -> None:
+    invalid = json.loads(
+        _valid_response()
+    )
+
+    invalid["actions"][0]["duration_seconds"] = 0.5
+
+    llm = FakeLLM(
+        json.dumps(invalid)
+    )
+
+    agent = AnimatorAgent(
+        llm,
+        _registry(),
+    )
+
+    with pytest.raises(
+        AnimatorAgentError,
+        match="execution-safe minimum",
+    ):
+        agent.generate_plan(
+            "Momo waits briefly.",
+            scene_id="scene_ai_1",
+            character_id="momo",
+            duration_seconds=8.0,
+        )
+
+    assert len(llm.calls) == 2

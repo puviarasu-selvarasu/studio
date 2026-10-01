@@ -38,6 +38,10 @@ from kernel.animation_ir.models import (
     AnimationScene,
     CharacterAnimation,
 )
+from kernel.adapters.blender.camera_direction import (
+    CameraDirectionCommand,
+    compile_camera_direction,
+)
 from kernel.adapters.blender.semantic_dispatcher import (
     compile_animation_scene,
     execute_animation_scene,
@@ -54,6 +58,8 @@ from kernel.adapters.blender.humanoid_rig import (
 )
 from kernel.adapters.blender.toolkit_level0 import (
     configure_timeline,
+    insert_transform_keyframe,
+    point_camera_at,
     set_location,
 )
 
@@ -67,7 +73,13 @@ PREVIEW_FPS = 12
 PREVIEW_FRAME_STEP = FPS // PREVIEW_FPS
 
 
-def parse_arguments() -> tuple[Path, Path, Path]:
+def parse_arguments(
+) -> tuple[
+    Path,
+    Path,
+    Path,
+    Path | None,
+]:
     """Read trusted paths passed after Blender's -- separator."""
 
     if "--" not in sys.argv:
@@ -79,15 +91,26 @@ def parse_arguments() -> tuple[Path, Path, Path]:
         sys.argv.index("--") + 1 :
     ]
 
-    if len(args) != 3:
+    if len(args) not in {
+        3,
+        4,
+    }:
         raise RuntimeError(
-            "Expected blend path, preview path and Animation IR path."
+            "Expected blend path, preview path, Animation IR path "
+            "and optional Director camera plan path."
         )
+
+    camera_plan_path = (
+        Path(args[3]).resolve()
+        if len(args) == 4
+        else None
+    )
 
     return (
         Path(args[0]).resolve(),
         Path(args[1]).resolve(),
         Path(args[2]).resolve(),
+        camera_plan_path,
     )
 
 
@@ -319,6 +342,145 @@ def load_animation_scene(
     return scene
 
 
+def load_director_camera_plan(
+    camera_plan_path: Path,
+    animation_scene: AnimationScene,
+) -> tuple[
+    str,
+    str,
+    str,
+]:
+    """Load a narrow request-bound Director camera plan."""
+
+    try:
+        raw = json.loads(
+            camera_plan_path.read_text(
+                encoding="utf-8"
+            )
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+    ) as exc:
+        raise RuntimeError(
+            f"Unable to load Director camera plan: {exc}"
+        ) from exc
+
+    root = _mapping(
+        raw,
+        label="Director camera plan",
+    )
+
+    _exact_keys(
+        root,
+        keys={
+            "scene_id",
+            "duration_seconds",
+            "shot",
+        },
+        label="Director camera plan",
+    )
+
+    scene_id = _text(
+        root["scene_id"],
+        label="Director camera plan scene_id",
+    )
+
+    duration_seconds = _number(
+        root["duration_seconds"],
+        label="Director camera plan duration_seconds",
+    )
+
+    if scene_id != animation_scene.scene_id:
+        raise RuntimeError(
+            "Director camera plan scene ID does not match "
+            "Animation IR."
+        )
+
+    if duration_seconds != animation_scene.duration_seconds:
+        raise RuntimeError(
+            "Director camera plan duration does not match "
+            "Animation IR."
+        )
+
+    shot = _mapping(
+        root["shot"],
+        label="Director camera plan shot",
+    )
+
+    _exact_keys(
+        shot,
+        keys={
+            "framing",
+            "camera_intent",
+            "pacing",
+        },
+        label="Director camera plan shot",
+    )
+
+    return (
+        _text(
+            shot["framing"],
+            label="Director camera framing",
+        ),
+        _text(
+            shot["camera_intent"],
+            label="Director camera intent",
+        ),
+        _text(
+            shot["pacing"],
+            label="Director camera pacing",
+        ),
+    )
+
+
+def apply_camera_direction(
+    *,
+    camera_name: str,
+    command: CameraDirectionCommand,
+) -> None:
+    """Apply only a trusted compiled camera command."""
+
+    set_location(
+        camera_name,
+        command.start_location,
+    )
+
+    point_camera_at(
+        camera_name,
+        command.start_target,
+    )
+
+    insert_transform_keyframe(
+        camera_name,
+        command.start_frame,
+        channels=(
+            "location",
+            "rotation_euler",
+        ),
+    )
+
+    if command.end_frame > command.start_frame:
+        set_location(
+            camera_name,
+            command.end_location,
+        )
+
+        point_camera_at(
+            camera_name,
+            command.end_target,
+        )
+
+        insert_transform_keyframe(
+            camera_name,
+            command.end_frame,
+            channels=(
+                "location",
+                "rotation_euler",
+            ),
+        )
+
+
 def timeline_end_frame(
     scene: AnimationScene,
 ) -> int:
@@ -375,8 +537,18 @@ def render_preview_frames(
 
 def build_ai_shot(
     animation_scene: AnimationScene,
-) -> tuple[int, tuple[object, ...]]:
-    """Build the rig and execute only trusted semantic actions."""
+    *,
+    camera_plan: tuple[
+        str,
+        str,
+        str,
+    ] | None = None,
+) -> tuple[
+    int,
+    tuple[object, ...],
+    CameraDirectionCommand | None,
+]:
+    """Build the rig and execute trusted character and camera intent."""
 
     end_frame = timeline_end_frame(
         animation_scene
@@ -389,7 +561,32 @@ def build_ai_shot(
     )
 
     create_ground()
-    create_camera()
+
+    camera = create_camera()
+
+    camera_command: (
+        CameraDirectionCommand
+        | None
+    ) = None
+
+    if camera_plan is not None:
+        (
+            framing,
+            camera_intent,
+            pacing,
+        ) = camera_plan
+
+        camera_command = compile_camera_direction(
+            framing=framing,
+            camera_intent=camera_intent,
+            pacing=pacing,
+            timeline_end_frame=end_frame,
+        )
+
+        apply_camera_direction(
+            camera_name=camera.name,
+            command=camera_command,
+        )
 
     rig = create_humanoid_armature(
         RIG_NAME
@@ -417,16 +614,18 @@ def build_ai_shot(
     return (
         end_frame,
         commands,
+        camera_command,
     )
 
 
 def main() -> None:
-    """Create and render an AI-planned Studio engineering shot."""
+    """Create and render an AI-directed Studio engineering shot."""
 
     (
         blend_path,
         preview_path,
         ir_path,
+        camera_plan_path,
     ) = parse_arguments()
 
     blend_path.parent.mkdir(
@@ -438,13 +637,24 @@ def main() -> None:
         ir_path
     )
 
+    camera_plan = (
+        load_director_camera_plan(
+            camera_plan_path,
+            animation_scene,
+        )
+        if camera_plan_path is not None
+        else None
+    )
+
     clear_scene()
 
     (
         end_frame,
         commands,
+        camera_command,
     ) = build_ai_shot(
-        animation_scene
+        animation_scene,
+        camera_plan=camera_plan,
     )
 
     configure_render(
@@ -479,6 +689,32 @@ def main() -> None:
 
     print("STUDIO_AI_SHOT_OK")
     print("STUDIO_AI_IR_EXECUTED_OK")
+
+    if camera_command is not None:
+        print(
+            "STUDIO_DIRECTOR_CAMERA_EXECUTED_OK"
+        )
+
+        print(
+            "STUDIO_CAMERA_FRAMING="
+            + camera_command.framing
+        )
+
+        print(
+            "STUDIO_CAMERA_INTENT="
+            + camera_command.camera_intent
+        )
+
+        print(
+            "STUDIO_CAMERA_PACING="
+            + camera_command.pacing
+        )
+
+        print(
+            "STUDIO_CAMERA_FRAMES="
+            f"{camera_command.start_frame}:"
+            f"{camera_command.end_frame}"
+        )
 
     print(
         f"STUDIO_PREVIEW_FRAME_COUNT="

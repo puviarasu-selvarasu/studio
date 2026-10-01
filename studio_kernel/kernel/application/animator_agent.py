@@ -21,6 +21,19 @@ from kernel.capabilities.validator import (
 from kernel.ports.llm import LLMPort
 
 
+_EXECUTION_SAFE_MINIMUM_SECONDS: dict[str, float] = {
+    "idle": 0.75,
+    "turn_head": 0.50,
+    "wave": 0.50,
+    "step_forward": 0.50,
+}
+
+
+_GENERATION_MINIMUM_SECONDS = max(
+    _EXECUTION_SAFE_MINIMUM_SECONDS.values()
+)
+
+
 class AnimatorAgentError(Exception):
     """Represent failure to create a trusted animation plan."""
 
@@ -85,37 +98,48 @@ class AnimatorAgent:
             supported_actions=capability.actions,
         )
 
-        try:
-            raw_json = self._llm.generate(
-                prompt,
-                system_prompt=self._system_prompt(),
-                response_schema=self._response_schema(
-                    scene_id=scene_id,
-                    character_id=character_id,
-                    duration_seconds=duration_seconds,
-                    supported_actions=capability.actions,
-                ),
-            )
-        except Exception as exc:
-            raise AnimatorAgentError(
-                f"Animator LLM generation failed: {exc}"
-            ) from exc
+        response_schema = self._response_schema(
+            scene_id=scene_id,
+            character_id=character_id,
+            duration_seconds=duration_seconds,
+            supported_actions=capability.actions,
+        )
 
-        try:
-            plan = animator_plan_from_json(
-                raw_json
-            )
-        except AnimatorPlanParseError as exc:
-            raise AnimatorAgentError(
-                f"Animator returned invalid plan JSON: {exc}"
-            ) from exc
-
-        self._validate_request_binding(
-            plan,
+        plan = self._request_plan(
+            prompt,
+            response_schema=response_schema,
             scene_id=scene_id,
             character_id=character_id,
             duration_seconds=duration_seconds,
         )
+
+        try:
+            self._validate_execution_timing(
+                plan
+            )
+        except AnimatorAgentError as exc:
+            correction_prompt = (
+                prompt
+                + "\n\nCORRECTION REQUIRED:\n"
+                + str(exc)
+                + "\nRegenerate the complete plan once. "
+                + "For the current Level-1 execution profile, "
+                + f"use at least {_GENERATION_MINIMUM_SECONDS:.2f} "
+                + "seconds for every action. "
+                + "Return JSON only."
+            )
+
+            plan = self._request_plan(
+                correction_prompt,
+                response_schema=response_schema,
+                scene_id=scene_id,
+                character_id=character_id,
+                duration_seconds=duration_seconds,
+            )
+
+            self._validate_execution_timing(
+                plan
+            )
 
         scene = animation_scene_from_plan(
             plan
@@ -248,7 +272,87 @@ class AnimatorAgent:
             supported_actions
         )
 
+        duration_schema = action_properties.get(
+            "duration_seconds"
+        )
+
+        if not isinstance(duration_schema, dict):
+            raise AnimatorAgentError(
+                "Animator action duration schema is missing."
+            )
+
+        duration_schema["minimum"] = (
+            _GENERATION_MINIMUM_SECONDS
+        )
+
         return schema
+
+    def _request_plan(
+        self,
+        prompt: str,
+        *,
+        response_schema: dict[str, object],
+        scene_id: str,
+        character_id: str,
+        duration_seconds: float,
+    ) -> AnimatorPlan:
+        """Request, parse and request-bind one Animator plan."""
+
+        try:
+            raw_json = self._llm.generate(
+                prompt,
+                system_prompt=self._system_prompt(),
+                response_schema=response_schema,
+            )
+        except Exception as exc:
+            raise AnimatorAgentError(
+                f"Animator LLM generation failed: {exc}"
+            ) from exc
+
+        try:
+            plan = animator_plan_from_json(
+                raw_json
+            )
+        except AnimatorPlanParseError as exc:
+            raise AnimatorAgentError(
+                f"Animator returned invalid plan JSON: {exc}"
+            ) from exc
+
+        self._validate_request_binding(
+            plan,
+            scene_id=scene_id,
+            character_id=character_id,
+            duration_seconds=duration_seconds,
+        )
+
+        return plan
+
+
+    @staticmethod
+    def _validate_execution_timing(
+        plan: AnimatorPlan,
+    ) -> None:
+        """Reject semantic actions too short for trusted execution."""
+
+        for index, action in enumerate(
+            plan.actions
+        ):
+            minimum = (
+                _EXECUTION_SAFE_MINIMUM_SECONDS.get(
+                    action.action
+                )
+            )
+
+            if minimum is None:
+                continue
+
+            if action.duration_seconds < minimum:
+                raise AnimatorAgentError(
+                    f"Animator action '{action.action}' at "
+                    f"actions[{index}] is shorter than the "
+                    f"execution-safe minimum of {minimum:.2f} seconds."
+                )
+
 
     @staticmethod
     def _system_prompt() -> str:
@@ -279,6 +383,16 @@ class AnimatorAgent:
             supported_actions
         )
 
+        timing_constraints = "\n".join(
+            (
+                f"- {action}: at least "
+                f"{minimum:.2f} seconds"
+            )
+            for action, minimum
+            in _EXECUTION_SAFE_MINIMUM_SECONDS.items()
+            if action in supported_actions
+        )
+
         return f"""
 Create a single-character animation plan.
 
@@ -291,6 +405,13 @@ Scene intent:
 
 Supported actions:
 {actions}
+
+Execution-safe minimum action durations:
+{timing_constraints}
+
+Current Level-1 generation safety floor:
+- Generate every action with duration_seconds of at least
+  {_GENERATION_MINIMUM_SECONDS:.2f} seconds.
 
 Return ONLY JSON with exactly this structure:
 
@@ -313,6 +434,8 @@ Rules:
 - Use one or more actions.
 - All start times must be zero or greater.
 - All durations must be greater than zero.
+- Respect every execution-safe minimum action duration listed above.
+- For this Level-1 profile, generate every action at or above the global safety floor.
 - Every action must finish within the scene duration.
 - Keep timing simple and sequential where practical.
 - Preserve the requested scene ID exactly.

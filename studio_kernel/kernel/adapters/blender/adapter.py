@@ -212,6 +212,8 @@ class BlenderAdapter:
         self,
         animation_ir_path: Path,
         output_directory: Path,
+        *,
+        camera_plan_path: Path | None = None,
     ) -> BlenderShotResult:
         """Execute trusted Animation IR in headless Blender."""
 
@@ -228,6 +230,15 @@ class BlenderAdapter:
                 f"Animation IR file does not exist: "
                 f"{animation_ir_path}"
             )
+
+        if camera_plan_path is not None:
+            camera_plan_path = camera_plan_path.resolve()
+
+            if not camera_plan_path.is_file():
+                raise BlenderAdapterError(
+                    f"Director camera plan file does not exist: "
+                    f"{camera_plan_path}"
+                )
 
         output_directory = output_directory.resolve()
 
@@ -261,6 +272,11 @@ class BlenderAdapter:
             str(preview_path),
             str(animation_ir_path),
         ]
+
+        if camera_plan_path is not None:
+            command.append(
+                str(camera_plan_path)
+            )
 
         try:
             completed = subprocess.run(
@@ -305,6 +321,16 @@ class BlenderAdapter:
             raise BlenderAdapterError(
                 "Blender did not confirm trusted "
                 "Animation IR execution."
+            )
+
+        if (
+            camera_plan_path is not None
+            and "STUDIO_DIRECTOR_CAMERA_EXECUTED_OK"
+            not in combined_output
+        ):
+            raise BlenderAdapterError(
+                "Blender did not confirm trusted "
+                "Director-camera execution marker."
             )
 
         if not blend_path.is_file():
