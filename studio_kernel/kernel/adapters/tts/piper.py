@@ -10,11 +10,53 @@ from pathlib import Path
 class PiperTTSError(
     RuntimeError
 ):
-    """Raised when local Piper synthesis fails."""
+    pass
+
+
+def _optional_non_negative(
+    value: float | None,
+    *,
+    field: str,
+) -> float | None:
+    if value is None:
+        return None
+
+    number = float(
+        value
+    )
+
+    if number < 0:
+        raise ValueError(
+            field
+            + " must be non-negative."
+        )
+
+    return number
+
+
+def _optional_positive(
+    value: float | None,
+    *,
+    field: str,
+) -> float | None:
+    if value is None:
+        return None
+
+    number = float(
+        value
+    )
+
+    if number <= 0:
+        raise ValueError(
+            field
+            + " must be greater than zero."
+        )
+
+    return number
 
 
 class PiperTTSAdapter:
-    """Run a trusted Piper executable and trusted local voice model."""
+    """Run trusted Piper with bounded local synthesis controls."""
 
     def __init__(
         self,
@@ -23,6 +65,11 @@ class PiperTTSAdapter:
         *,
         config_path: Path | None = None,
         speaker_id: int | None = None,
+        length_scale: float | None = None,
+        noise_scale: float | None = None,
+        noise_w_scale: float | None = None,
+        volume: float | None = None,
+        sentence_silence: float | None = None,
         timeout_seconds: float = 120.0,
     ) -> None:
         self._executable_path = Path(
@@ -37,7 +84,8 @@ class PiperTTSAdapter:
             Path(
                 config_path
             )
-            if config_path is not None
+            if config_path
+            is not None
             else None
         )
 
@@ -59,6 +107,41 @@ class PiperTTSAdapter:
             speaker_id
         )
 
+        self._length_scale = (
+            _optional_positive(
+                length_scale,
+                field="length_scale",
+            )
+        )
+
+        self._noise_scale = (
+            _optional_non_negative(
+                noise_scale,
+                field="noise_scale",
+            )
+        )
+
+        self._noise_w_scale = (
+            _optional_non_negative(
+                noise_w_scale,
+                field="noise_w_scale",
+            )
+        )
+
+        self._volume = (
+            _optional_positive(
+                volume,
+                field="volume",
+            )
+        )
+
+        self._sentence_silence = (
+            _optional_non_negative(
+                sentence_silence,
+                field="sentence_silence",
+            )
+        )
+
         if timeout_seconds <= 0:
             raise ValueError(
                 "timeout_seconds must be greater than zero."
@@ -73,9 +156,9 @@ class PiperTTSAdapter:
         text: str,
         output_path: Path,
     ) -> Path:
-        """Generate one WAV without shell execution."""
-
-        normalized = text.strip()
+        normalized = (
+            text.strip()
+        )
 
         if not normalized:
             raise ValueError(
@@ -111,7 +194,8 @@ class PiperTTSAdapter:
             )
 
         if (
-            self._config_path is not None
+            self._config_path
+            is not None
             and not self._config_path.is_file()
         ):
             raise PiperTTSError(
@@ -153,10 +237,7 @@ class PiperTTSAdapter:
                 ]
             )
 
-        if (
-            self._speaker_id
-            is not None
-        ):
+        if self._speaker_id is not None:
             command.extend(
                 [
                     "--speaker",
@@ -165,6 +246,40 @@ class PiperTTSAdapter:
                     ),
                 ]
             )
+
+        options = (
+            (
+                "--length-scale",
+                self._length_scale,
+            ),
+            (
+                "--noise-scale",
+                self._noise_scale,
+            ),
+            (
+                "--noise-w-scale",
+                self._noise_w_scale,
+            ),
+            (
+                "--volume",
+                self._volume,
+            ),
+            (
+                "--sentence-silence",
+                self._sentence_silence,
+            ),
+        )
+
+        for flag, value in options:
+            if value is not None:
+                command.extend(
+                    [
+                        flag,
+                        str(
+                            value
+                        ),
+                    ]
+                )
 
         try:
             result = subprocess.run(
@@ -187,6 +302,7 @@ class PiperTTSAdapter:
                 check=False,
                 shell=False,
             )
+
         except (
             OSError,
             subprocess.TimeoutExpired,
@@ -214,13 +330,12 @@ class PiperTTSAdapter:
                 "Piper did not create a non-empty WAV."
             )
 
-        header = (
+        if (
             output_path.read_bytes()[
                 :4
             ]
-        )
-
-        if header != b"RIFF":
+            != b"RIFF"
+        ):
             raise PiperTTSError(
                 "Piper output is not a RIFF WAV file."
             )

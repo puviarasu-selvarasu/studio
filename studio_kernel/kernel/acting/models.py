@@ -16,8 +16,6 @@ class Viseme(
     str,
     Enum,
 ):
-    """Small language-neutral mouth-shape vocabulary."""
-
     REST = "rest"
     CLOSED = "closed"
     OPEN = "open"
@@ -64,13 +62,9 @@ def _bounded(
         raise ActingDomainError(
             field
             + " must be between "
-            + str(
-                minimum
-            )
+            + str(minimum)
             + " and "
-            + str(
-                maximum
-            )
+            + str(maximum)
             + "."
         )
 
@@ -82,8 +76,6 @@ def _bounded(
     slots=True,
 )
 class VisemeCue:
-    """One mouth-shape keyframe."""
-
     frame: int
     viseme: Viseme
     strength: float
@@ -125,8 +117,6 @@ class VisemeCue:
     slots=True,
 )
 class BlinkCue:
-    """One eyelid-state keyframe."""
-
     frame: int
     closed: bool
 
@@ -156,7 +146,7 @@ class BlinkCue:
     slots=True,
 )
 class ActingPoseCue:
-    """Small trusted facial/body acting adjustment."""
+    """Facial + upper-body acting pose."""
 
     frame: int
 
@@ -168,6 +158,16 @@ class ActingPoseCue:
 
     brow_left_degrees: float = 0.0
     brow_right_degrees: float = 0.0
+
+    eye_open_left: float = 1.0
+    eye_open_right: float = 1.0
+
+    pupil_x: float = 0.0
+    pupil_z: float = 0.0
+    pupil_scale: float = 1.0
+
+    mouth_tilt_degrees: float = 0.0
+    mouth_z_offset: float = 0.0
 
     def __post_init__(
         self,
@@ -203,17 +203,85 @@ class ActingPoseCue:
                 ),
             )
 
+        for field in (
+            "eye_open_left",
+            "eye_open_right",
+        ):
+            object.__setattr__(
+                self,
+                field,
+                _bounded(
+                    getattr(
+                        self,
+                        field,
+                    ),
+                    field=field,
+                    minimum=0.10,
+                    maximum=1.40,
+                ),
+            )
+
+        for field in (
+            "pupil_x",
+            "pupil_z",
+        ):
+            object.__setattr__(
+                self,
+                field,
+                _bounded(
+                    getattr(
+                        self,
+                        field,
+                    ),
+                    field=field,
+                    minimum=-0.08,
+                    maximum=0.08,
+                ),
+            )
+
+        object.__setattr__(
+            self,
+            "pupil_scale",
+            _bounded(
+                self.pupil_scale,
+                field="pupil_scale",
+                minimum=0.65,
+                maximum=1.35,
+            ),
+        )
+
+        object.__setattr__(
+            self,
+            "mouth_tilt_degrees",
+            _bounded(
+                self.mouth_tilt_degrees,
+                field="mouth_tilt_degrees",
+                minimum=-15.0,
+                maximum=15.0,
+            ),
+        )
+
+        object.__setattr__(
+            self,
+            "mouth_z_offset",
+            _bounded(
+                self.mouth_z_offset,
+                field="mouth_z_offset",
+                minimum=-0.06,
+                maximum=0.06,
+            ),
+        )
+
 
 @dataclass(
     frozen=True,
     slots=True,
 )
 class LipSyncAnalysis:
-    """CPU-derived mouth timing from one local WAV."""
-
     fps: int
     end_frame: int
     duration_seconds: float
+
     visemes: tuple[
         VisemeCue,
         ...,
@@ -242,10 +310,7 @@ class LipSyncAnalysis:
             ),
         )
 
-        if (
-            self.duration_seconds
-            <= 0
-        ):
+        if self.duration_seconds <= 0:
             raise ActingDomainError(
                 "duration_seconds must be greater than zero."
             )
@@ -267,8 +332,6 @@ class LipSyncAnalysis:
     slots=True,
 )
 class ActingTimeline:
-    """Trusted language-neutral timeline consumed by Blender."""
-
     fps: int
     end_frame: int
 
@@ -367,14 +430,8 @@ def _validate_cue_frames(
         )
 
     if (
-        len(
-            frames
-        )
-        != len(
-            set(
-                frames
-            )
-        )
+        len(frames)
+        != len(set(frames))
     ):
         raise ActingDomainError(
             label

@@ -21,14 +21,30 @@ ACTING_TIMELINE_SCHEMA_VERSION = 1
 class ActingTimelineParseError(
     ActingDomainError
 ):
-    """Raised when an acting-timeline document is invalid."""
+    pass
+
+
+_POSE_KEYS = {
+    "frame",
+    "head_pitch_degrees",
+    "head_yaw_degrees",
+    "head_roll_degrees",
+    "chest_pitch_degrees",
+    "brow_left_degrees",
+    "brow_right_degrees",
+    "eye_open_left",
+    "eye_open_right",
+    "pupil_x",
+    "pupil_z",
+    "pupil_scale",
+    "mouth_tilt_degrees",
+    "mouth_z_offset",
+}
 
 
 def acting_timeline_to_data(
     timeline: ActingTimeline,
 ) -> dict[str, object]:
-    """Convert one trusted timeline to plain deterministic data."""
-
     return {
         "schema_version": (
             ACTING_TIMELINE_SCHEMA_VERSION
@@ -59,24 +75,19 @@ def acting_timeline_to_data(
         "poses": [
             {
                 "frame": cue.frame,
-                "head_pitch_degrees": (
-                    cue.head_pitch_degrees
-                ),
-                "head_yaw_degrees": (
-                    cue.head_yaw_degrees
-                ),
-                "head_roll_degrees": (
-                    cue.head_roll_degrees
-                ),
-                "chest_pitch_degrees": (
-                    cue.chest_pitch_degrees
-                ),
-                "brow_left_degrees": (
-                    cue.brow_left_degrees
-                ),
-                "brow_right_degrees": (
-                    cue.brow_right_degrees
-                ),
+                "head_pitch_degrees": cue.head_pitch_degrees,
+                "head_yaw_degrees": cue.head_yaw_degrees,
+                "head_roll_degrees": cue.head_roll_degrees,
+                "chest_pitch_degrees": cue.chest_pitch_degrees,
+                "brow_left_degrees": cue.brow_left_degrees,
+                "brow_right_degrees": cue.brow_right_degrees,
+                "eye_open_left": cue.eye_open_left,
+                "eye_open_right": cue.eye_open_right,
+                "pupil_x": cue.pupil_x,
+                "pupil_z": cue.pupil_z,
+                "pupil_scale": cue.pupil_scale,
+                "mouth_tilt_degrees": cue.mouth_tilt_degrees,
+                "mouth_z_offset": cue.mouth_z_offset,
             }
             for cue
             in timeline.poses
@@ -87,8 +98,6 @@ def acting_timeline_to_data(
 def acting_timeline_to_json(
     timeline: ActingTimeline,
 ) -> str:
-    """Serialize one trusted acting timeline."""
-
     return (
         json.dumps(
             acting_timeline_to_data(
@@ -104,8 +113,6 @@ def acting_timeline_to_json(
 def acting_timeline_from_json(
     raw: str,
 ) -> ActingTimeline:
-    """Parse one strict acting timeline."""
-
     try:
         data = json.loads(
             raw
@@ -245,21 +252,48 @@ def acting_timeline_from_json(
                         "brow_right_degrees"
                     ]
                 ),
+                eye_open_left=float(
+                    item[
+                        "eye_open_left"
+                    ]
+                ),
+                eye_open_right=float(
+                    item[
+                        "eye_open_right"
+                    ]
+                ),
+                pupil_x=float(
+                    item[
+                        "pupil_x"
+                    ]
+                ),
+                pupil_z=float(
+                    item[
+                        "pupil_z"
+                    ]
+                ),
+                pupil_scale=float(
+                    item[
+                        "pupil_scale"
+                    ]
+                ),
+                mouth_tilt_degrees=float(
+                    item[
+                        "mouth_tilt_degrees"
+                    ]
+                ),
+                mouth_z_offset=float(
+                    item[
+                        "mouth_z_offset"
+                    ]
+                ),
             )
             for item
             in _records(
                 data[
                     "poses"
                 ],
-                {
-                    "frame",
-                    "head_pitch_degrees",
-                    "head_yaw_degrees",
-                    "head_roll_degrees",
-                    "chest_pitch_degrees",
-                    "brow_left_degrees",
-                    "brow_right_degrees",
-                },
+                _POSE_KEYS,
                 "poses",
             )
         )
