@@ -1,7 +1,13 @@
 """Studio voice-performance domain."""
 
+from kernel.voices.casting import (
+    CharacterVoiceAssignment,
+    VoiceCast,
+    VoiceCastError,
+)
 from kernel.voices.catalog import (
     STUDIO_VOICE_01,
+    STUDIO_VOICE_02,
     VOICE_IDENTITIES,
     get_voice_identity,
 )
@@ -24,9 +30,13 @@ from kernel.voices.serialization import (
 
 
 __all__ = [
+    "CharacterVoiceAssignment",
     "STUDIO_VOICE_01",
+    "STUDIO_VOICE_02",
     "VOICE_IDENTITIES",
     "VOICE_PERFORMANCE_SCHEMA_VERSION",
+    "VoiceCast",
+    "VoiceCastError",
     "VoiceDomainError",
     "VoiceEmotion",
     "VoiceEnergy",

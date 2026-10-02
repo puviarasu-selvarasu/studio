@@ -236,3 +236,116 @@ def test_piper_adapter_rejects_untrusted_missing_model(
             tmp_path
             / "speech.wav",
         )
+
+
+def test_piper_adapter_supports_trusted_multi_speaker_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable, model = (
+        _trusted_files(
+            tmp_path
+        )
+    )
+
+    commands: list[
+        list[str]
+    ] = []
+
+    def fake_run(
+        command: list[str],
+        *,
+        input: str,
+        capture_output: bool,
+        text: bool,
+        timeout: float,
+        check: bool,
+        shell: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        del input
+        del capture_output
+        del text
+        del timeout
+        del check
+
+        assert shell is False
+
+        commands.append(
+            command
+        )
+
+        output = Path(
+            command[
+                command.index(
+                    "--output_file"
+                )
+                + 1
+            ]
+        )
+
+        output.write_bytes(
+            b"RIFF"
+            + b"\x00" * 64
+        )
+
+        return subprocess.CompletedProcess(
+            args=command,
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        piper_module.subprocess,
+        "run",
+        fake_run,
+    )
+
+    output = (
+        tmp_path
+        / "speaker.wav"
+    )
+
+    PiperTTSAdapter(
+        executable,
+        model,
+        speaker_id=7,
+    ).synthesize(
+        "Character voice.",
+        output,
+    )
+
+    assert "--speaker" in (
+        commands[0]
+    )
+
+    index = commands[0].index(
+        "--speaker"
+    )
+
+    assert (
+        commands[0][
+            index + 1
+        ]
+        == "7"
+    )
+
+
+def test_piper_adapter_rejects_negative_speaker_id(
+    tmp_path: Path,
+) -> None:
+    executable, model = (
+        _trusted_files(
+            tmp_path
+        )
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="speaker_id",
+    ):
+        PiperTTSAdapter(
+            executable,
+            model,
+            speaker_id=-1,
+        )

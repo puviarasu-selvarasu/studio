@@ -21,6 +21,7 @@ class PiperTTSAdapter:
         model_path: Path,
         *,
         config_path: Path | None = None,
+        speaker_id: int | None = None,
         timeout_seconds: float = 120.0,
     ) -> None:
         self._executable_path = Path(
@@ -37,6 +38,24 @@ class PiperTTSAdapter:
             )
             if config_path is not None
             else None
+        )
+
+        if (
+            speaker_id is not None
+            and (
+                not isinstance(
+                    speaker_id,
+                    int,
+                )
+                or speaker_id < 0
+            )
+        ):
+            raise ValueError(
+                "speaker_id must be a non-negative integer or None."
+            )
+
+        self._speaker_id = (
+            speaker_id
         )
 
         if timeout_seconds <= 0:
@@ -120,12 +139,28 @@ class PiperTTSAdapter:
             ),
         ]
 
-        if self._config_path is not None:
+        if (
+            self._config_path
+            is not None
+        ):
             command.extend(
                 [
                     "--config",
                     str(
                         self._config_path
+                    ),
+                ]
+            )
+
+        if (
+            self._speaker_id
+            is not None
+        ):
+            command.extend(
+                [
+                    "--speaker",
+                    str(
+                        self._speaker_id
                     ),
                 ]
             )

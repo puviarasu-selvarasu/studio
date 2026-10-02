@@ -19,8 +19,21 @@ STUDIO_VOICE_01 = VoiceIdentity(
 )
 
 
+STUDIO_VOICE_02 = VoiceIdentity(
+    voice_id="studio_voice_02",
+    language_code="en-US",
+    traits=(
+        "grounded",
+        "firm",
+        "measured",
+        "contrasting",
+    ),
+)
+
+
 VOICE_IDENTITIES = (
     STUDIO_VOICE_01,
+    STUDIO_VOICE_02,
 )
 
 
