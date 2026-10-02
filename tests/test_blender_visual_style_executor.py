@@ -514,3 +514,19 @@ def test_style_proof_renders_anime_camera_presentation() -> None:
     assert "STUDIO_CAMERA_SHIFT_X=" in source
     assert "STUDIO_CAMERA_SHIFT_Y=" in source
     assert "STUDIO_CAMERA_PATH=" in source
+
+def test_visual_fidelity_v2_adds_graphic_form_separation() -> None:
+    source = EXECUTOR.read_text(
+        encoding="utf-8"
+    )
+
+    required = (
+        "shading.show_cavity = True",
+        "StudioBackgroundBevel",
+        'obj.rotation_euler[2] = 0.035',
+        'obj.rotation_euler[2] = -0.035',
+        "style.palette.ink",
+    )
+
+    for token in required:
+        assert token in source

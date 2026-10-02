@@ -178,3 +178,85 @@ def test_character_builder_adds_neutral_arm_presentation() -> None:
         source.index("def _apply_anime_neutral_pose"):
         source.index("def _create_segment")
     ]
+
+def test_character_builder_has_layered_anime_eye_construction() -> None:
+    source = _source()
+
+    required = (
+        "_Material_EyeWhite",
+        'label="Eye_L"',
+        'label="Eye_R"',
+        'label="Pupil_L"',
+        'label="Pupil_R"',
+        'label="Brow_L"',
+        'label="Brow_R"',
+        "rounded=True",
+    )
+
+    for token in required:
+        assert token in source
+
+
+def test_character_builder_has_anime_forehead_fringe() -> None:
+    source = _source()
+
+    required = (
+        "def _create_hair_fringe(",
+        "_Hair_Fringe_",
+        '"L"',
+        '"C"',
+        '"R"',
+        "StudioHairFringeBevel",
+    )
+
+    for token in required:
+        assert token in source
+
+
+def test_character_builder_outfit_uses_rounded_low_poly_shells() -> None:
+    source = _source()
+
+    tree = ast.parse(
+        source
+    )
+
+    function = next(
+        node
+        for node in tree.body
+        if (
+            isinstance(
+                node,
+                ast.FunctionDef,
+            )
+            and node.name
+            == "_create_outfit_shell"
+        )
+    )
+
+    lines = source.splitlines()
+
+    segment = "\n".join(
+        lines[
+            function.lineno - 1:
+            function.end_lineno
+        ]
+    )
+
+    assert "primitive_uv_sphere_add" in segment
+    assert "segments=8" in segment
+    assert "ring_count=5" in segment
+
+
+def test_character_builder_uses_broader_anime_head_proportions() -> None:
+    source = _source()
+
+    required = (
+        "segments=16",
+        "ring_count=10",
+        "scale * 1.05",
+        "scale * 0.82",
+        "scale * 1.08",
+    )
+
+    for token in required:
+        assert token in source

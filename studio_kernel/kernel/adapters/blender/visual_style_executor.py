@@ -470,7 +470,7 @@ def _create_background_block(
     ],
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create one cheap deterministic 2.5D background block."""
+    """Create one graphic low-cost anime background silhouette."""
 
     bpy.ops.mesh.primitive_cube_add(
         location=location
@@ -487,11 +487,39 @@ def _create_background_block(
 
     obj.scale = scale
 
+    bpy.context.view_layer.objects.active = obj
+
+    obj.select_set(
+        True
+    )
+
     bpy.ops.object.transform_apply(
         location=False,
         rotation=False,
         scale=True,
     )
+
+    obj.select_set(
+        False
+    )
+
+    # Break the perfect CG rectangle while retaining
+    # the existing three-depth low-cost system.
+    if "Left" in name:
+        obj.rotation_euler[2] = 0.035
+    elif "Right" in name:
+        obj.rotation_euler[2] = -0.035
+
+    bevel = obj.modifiers.new(
+        name="StudioBackgroundBevel",
+        type="BEVEL",
+    )
+
+    bevel.width = min(
+        obj.dimensions
+    ) * 0.10
+
+    bevel.segments = 1
 
     assign_flat_material(
         obj,
@@ -499,7 +527,6 @@ def _create_background_block(
     )
 
     return obj
-
 
 def create_layered_2_5d_background(
     *,
@@ -829,7 +856,7 @@ def apply_bold_ink_outline(
     *,
     style: VisualStyle,
 ) -> None:
-    """Apply Studio's trusted hardware-safe bold-ink silhouette."""
+    """Apply Studio's hardware-safe anime ink and form separation."""
 
     if (
         style.line_profile
@@ -850,6 +877,39 @@ def apply_bold_ink_outline(
         style.palette.ink.b,
     )
 
+    # Workbench cavity is cheap and gives the cel image
+    # extra graphic separation around modeled form changes.
+    shading.show_cavity = True
+
+    if hasattr(
+        shading,
+        "cavity_type",
+    ):
+        shading.cavity_type = "WORLD"
+
+    if hasattr(
+        shading,
+        "curvature_ridge_factor",
+    ):
+        shading.curvature_ridge_factor = 1.35
+
+    if hasattr(
+        shading,
+        "curvature_valley_factor",
+    ):
+        shading.curvature_valley_factor = 0.65
+
+    if hasattr(
+        shading,
+        "cavity_ridge_factor",
+    ):
+        shading.cavity_ridge_factor = 1.20
+
+    if hasattr(
+        shading,
+        "cavity_valley_factor",
+    ):
+        shading.cavity_valley_factor = 0.60
 
 def apply_anime_cel_v1(
     *,

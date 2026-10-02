@@ -209,7 +209,7 @@ def _create_box(
     ],
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create one trusted low-cost cuboid."""
+    """Create one trusted low-cost art-directed cuboid."""
 
     bpy.ops.mesh.primitive_cube_add(
         size=1.0,
@@ -225,6 +225,7 @@ def _create_box(
         )
 
     obj.name = name
+
     obj.dimensions = dimensions
 
     bpy.context.view_layer.objects.active = (
@@ -245,13 +246,45 @@ def _create_box(
         False
     )
 
+    # Tiny bevels create line/value breaks while keeping
+    # the underlying production geometry at eight vertices.
+    bevel = obj.modifiers.new(
+        name="StudioWorldBevel",
+        type="BEVEL",
+    )
+
+    bevel.width = (
+        min(dimensions)
+        * 0.12
+    )
+
+    bevel.segments = 1
+
+    # Bounded old-station production-design accents.
+    if name.endswith(
+        "_Canopy_Roof"
+    ):
+        obj.rotation_euler[0] = 0.055
+
+    elif name.endswith(
+        "_Prop_station_bench_Back"
+    ):
+        obj.rotation_euler[0] = -0.10
+
+    elif (
+        name.endswith(
+            "_Station_Sign"
+        )
+        and "_Post_" not in name
+    ):
+        obj.rotation_euler[0] = 0.025
+
     _assign_material(
         obj,
         material,
     )
 
     return obj
-
 
 def _palette_for(
     spec: WorldProductionSpec,

@@ -338,7 +338,7 @@ def _create_head(
     scale: float,
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create Momo's lightweight anime-proportioned head."""
+    """Create Momo's broader lightweight anime head silhouette."""
 
     bone = _require_bone(
         rig,
@@ -351,10 +351,15 @@ def _create_head(
     ) * 0.5
 
     bpy.ops.mesh.primitive_uv_sphere_add(
-        segments=12,
-        ring_count=8,
+        segments=16,
+        ring_count=10,
         radius=0.38,
-        location=midpoint,
+        location=(
+            midpoint.x,
+            midpoint.y,
+            midpoint.z
+            + (0.015 * scale),
+        ),
     )
 
     head = bpy.context.active_object
@@ -370,8 +375,8 @@ def _create_head(
     )
 
     head.scale = (
-        scale,
-        scale * 0.92,
+        scale * 1.05,
+        scale * 0.82,
         scale * 1.08,
     )
 
@@ -404,7 +409,6 @@ def _create_head(
 
     return head
 
-
 def _create_hair_cap(
     *,
     rig: bpy.types.Object,
@@ -412,7 +416,7 @@ def _create_hair_cap(
     head_scale: float,
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create a rear hair mass that leaves the facial plane exposed."""
+    """Create a beveled rear hair mass that leaves the face exposed."""
 
     bone = _require_bone(
         rig,
@@ -428,8 +432,10 @@ def _create_hair_cap(
         size=1.0,
         location=(
             midpoint.x,
-            midpoint.y + 0.27,
-            midpoint.z - 0.08,
+            midpoint.y
+            + (0.16 * head_scale),
+            midpoint.z
+            - (0.05 * head_scale),
         ),
     )
 
@@ -446,16 +452,14 @@ def _create_hair_cap(
     )
 
     hair.dimensions = (
-        0.78 * head_scale,
-        0.16 * head_scale,
-        1.00 * head_scale,
+        0.86 * head_scale,
+        0.32 * head_scale,
+        1.02 * head_scale,
     )
 
     bpy.context.view_layer.objects.active = hair
 
-    hair.select_set(
-        True
-    )
+    hair.select_set(True)
 
     bpy.ops.object.transform_apply(
         location=False,
@@ -463,9 +467,19 @@ def _create_hair_cap(
         scale=True,
     )
 
-    hair.select_set(
-        False
+    hair.select_set(False)
+
+    bevel = hair.modifiers.new(
+        name="StudioHairBackBevel",
+        type="BEVEL",
     )
+
+    bevel.width = (
+        0.09
+        * head_scale
+    )
+
+    bevel.segments = 2
 
     _assign_material(
         hair,
@@ -480,7 +494,6 @@ def _create_hair_cap(
 
     return hair
 
-
 def _create_hair_top(
     *,
     rig: bpy.types.Object,
@@ -488,7 +501,7 @@ def _create_hair_top(
     head_scale: float,
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create a cheap top hair shape for silhouette readability."""
+    """Create a rounded crown mass for a readable anime silhouette."""
 
     bone = _require_bone(
         rig,
@@ -500,12 +513,16 @@ def _create_hair_top(
         + bone.tail_local
     ) * 0.5
 
-    bpy.ops.mesh.primitive_cube_add(
-        size=1.0,
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        segments=10,
+        ring_count=6,
+        radius=0.5,
         location=(
             midpoint.x,
-            midpoint.y + 0.03,
-            midpoint.z + 0.39,
+            midpoint.y
+            + (0.02 * head_scale),
+            midpoint.z
+            + (0.31 * head_scale),
         ),
     )
 
@@ -522,9 +539,9 @@ def _create_hair_top(
     )
 
     hair.dimensions = (
-        0.74 * head_scale,
-        0.30 * head_scale,
-        0.22 * head_scale,
+        0.88 * head_scale,
+        0.46 * head_scale,
+        0.36 * head_scale,
     )
 
     bpy.context.view_layer.objects.active = hair
@@ -556,6 +573,141 @@ def _create_hair_top(
 
     return hair
 
+def _create_hair_fringe(
+    *,
+    rig: bpy.types.Object,
+    prefix: str,
+    head_scale: float,
+    material: bpy.types.Material,
+) -> tuple[bpy.types.Object, ...]:
+    """Create three cheap angled fringe pieces across the forehead."""
+
+    bone = _require_bone(
+        rig,
+        "head",
+    )
+
+    midpoint = (
+        bone.head_local
+        + bone.tail_local
+    ) * 0.5
+
+    specs = (
+        (
+            "L",
+            -0.22,
+            -0.30,
+        ),
+        (
+            "C",
+            0.00,
+            0.02,
+        ),
+        (
+            "R",
+            0.22,
+            0.30,
+        ),
+    )
+
+    parts = []
+
+    for (
+        label,
+        x_offset,
+        angle,
+    ) in specs:
+        bpy.ops.mesh.primitive_cube_add(
+            size=1.0,
+            location=(
+                midpoint.x
+                + (
+                    x_offset
+                    * head_scale
+                ),
+                midpoint.y
+                - (
+                    0.31
+                    * head_scale
+                ),
+                midpoint.z
+                + (
+                    0.23
+                    * head_scale
+                ),
+            ),
+        )
+
+        fringe = bpy.context.active_object
+
+        if fringe is None:
+            raise CharacterBuilderError(
+                "Unable to create hair fringe."
+            )
+
+        fringe.name = (
+            prefix
+            + "_Hair_Fringe_"
+            + label
+        )
+
+        fringe.dimensions = (
+            0.19 * head_scale,
+            0.10 * head_scale,
+            0.37 * head_scale,
+        )
+
+        fringe.rotation_mode = "XYZ"
+
+        fringe.rotation_euler[1] = angle
+
+        bpy.context.view_layer.objects.active = fringe
+
+        fringe.select_set(
+            True
+        )
+
+        bpy.ops.object.transform_apply(
+            location=False,
+            rotation=False,
+            scale=True,
+        )
+
+        fringe.select_set(
+            False
+        )
+
+        bevel = fringe.modifiers.new(
+            name="StudioHairFringeBevel",
+            type="BEVEL",
+        )
+
+        bevel.width = (
+            0.025
+            * head_scale
+        )
+
+        bevel.segments = 1
+
+        _assign_material(
+            fringe,
+            material,
+        )
+
+        parent_object_to_bone(
+            fringe,
+            rig,
+            "head",
+        )
+
+        parts.append(
+            fringe
+        )
+
+    return tuple(
+        parts
+    )
+
 
 def _create_face_mark(
     *,
@@ -568,8 +720,10 @@ def _create_face_mark(
     height: float,
     head_scale: float,
     material: bpy.types.Material,
+    front_offset: float = 0.330,
+    rounded: bool = False,
 ) -> bpy.types.Object:
-    """Create one tiny deterministic facial mark."""
+    """Create one deterministic layered anime facial feature."""
 
     bone = _require_bone(
         rig,
@@ -581,26 +735,36 @@ def _create_face_mark(
         + bone.tail_local
     ) * 0.5
 
-    bpy.ops.mesh.primitive_cube_add(
-        size=1.0,
-        location=(
-            midpoint.x
-            + (
-                x_offset
-                * head_scale
-            ),
-            midpoint.y
-            - (
-                0.385
-                * head_scale
-            ),
-            midpoint.z
-            + (
-                z_offset
-                * head_scale
-            ),
+    location = (
+        midpoint.x
+        + (
+            x_offset
+            * head_scale
+        ),
+        midpoint.y
+        - (
+            front_offset
+            * head_scale
+        ),
+        midpoint.z
+        + (
+            z_offset
+            * head_scale
         ),
     )
+
+    if rounded:
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            segments=8,
+            ring_count=4,
+            radius=0.5,
+            location=location,
+        )
+    else:
+        bpy.ops.mesh.primitive_cube_add(
+            size=1.0,
+            location=location,
+        )
 
     mark = bpy.context.active_object
 
@@ -618,7 +782,7 @@ def _create_face_mark(
 
     mark.dimensions = (
         width * head_scale,
-        0.045 * head_scale,
+        0.032 * head_scale,
         height * head_scale,
     )
 
@@ -651,7 +815,6 @@ def _create_face_mark(
 
     return mark
 
-
 def _create_hair_lock(
     *,
     rig: bpy.types.Object,
@@ -660,7 +823,7 @@ def _create_hair_lock(
     head_scale: float,
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create one low-cost shoulder-length side hair lock."""
+    """Create one rounded shoulder-length anime side lock."""
 
     if side not in {
         "L",
@@ -680,22 +843,27 @@ def _create_hair_lock(
         + bone.tail_local
     ) * 0.5
 
-    x_offset = (
-        -0.31
+    direction = (
+        -1.0
         if side == "L"
-        else 0.31
+        else 1.0
     )
 
-    bpy.ops.mesh.primitive_cube_add(
-        size=1.0,
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        segments=8,
+        ring_count=5,
+        radius=0.5,
         location=(
             midpoint.x
             + (
-                x_offset
+                direction
+                * 0.32
                 * head_scale
             ),
-            midpoint.y + 0.18,
-            midpoint.z - 0.22,
+            midpoint.y
+            + (0.10 * head_scale),
+            midpoint.z
+            - (0.22 * head_scale),
         ),
     )
 
@@ -713,9 +881,16 @@ def _create_hair_lock(
     )
 
     lock.dimensions = (
-        0.15 * head_scale,
-        0.12 * head_scale,
-        0.76 * head_scale,
+        0.19 * head_scale,
+        0.19 * head_scale,
+        0.78 * head_scale,
+    )
+
+    lock.rotation_mode = "XYZ"
+
+    lock.rotation_euler[1] = (
+        direction
+        * 0.14
     )
 
     bpy.context.view_layer.objects.active = lock
@@ -747,7 +922,6 @@ def _create_hair_lock(
 
     return lock
 
-
 def _create_outfit_shell(
     *,
     rig: bpy.types.Object,
@@ -759,7 +933,7 @@ def _create_outfit_shell(
     length_scale: float,
     material: bpy.types.Material,
 ) -> bpy.types.Object:
-    """Create one lightweight outfit layer around a canonical torso bone."""
+    """Create one rounded low-poly outfit layer around a canonical torso bone."""
 
     bone = _require_bone(
         rig,
@@ -776,8 +950,10 @@ def _create_outfit_shell(
         - bone.head_local
     )
 
-    bpy.ops.mesh.primitive_cube_add(
-        size=1.0,
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        segments=8,
+        ring_count=5,
+        radius=0.5,
         location=midpoint,
     )
 
@@ -841,7 +1017,6 @@ def _create_outfit_shell(
 
     return obj
 
-
 def build_character(
     spec: CharacterProductionSpec,
 ) -> BuiltCharacter:
@@ -884,6 +1059,16 @@ def build_character(
     face_material = _material(
         prefix + "_Material_Face",
         _MOMO_FACE,
+    )
+
+    eye_white_material = _material(
+        prefix + "_Material_EyeWhite",
+        (
+            0.94,
+            0.95,
+            0.96,
+            1.0,
+        ),
     )
 
     outfit_material = _material(
@@ -1034,34 +1219,89 @@ def build_character(
             rig=rig,
             prefix=prefix,
             label="Eye_L",
-            x_offset=-0.14,
+            x_offset=-0.15,
             z_offset=0.07,
-            width=0.10,
-            height=0.055,
+            width=0.19,
+            height=0.105,
             head_scale=proportions.head_scale,
-            material=face_material,
+            material=eye_white_material,
+            front_offset=0.330,
+            rounded=True,
         ),
         _create_face_mark(
             rig=rig,
             prefix=prefix,
             label="Eye_R",
-            x_offset=0.14,
+            x_offset=0.15,
             z_offset=0.07,
-            width=0.10,
-            height=0.055,
+            width=0.19,
+            height=0.105,
+            head_scale=proportions.head_scale,
+            material=eye_white_material,
+            front_offset=0.330,
+            rounded=True,
+        ),
+        _create_face_mark(
+            rig=rig,
+            prefix=prefix,
+            label="Pupil_L",
+            x_offset=-0.15,
+            z_offset=0.065,
+            width=0.064,
+            height=0.082,
             head_scale=proportions.head_scale,
             material=face_material,
+            front_offset=0.342,
+            rounded=True,
+        ),
+        _create_face_mark(
+            rig=rig,
+            prefix=prefix,
+            label="Pupil_R",
+            x_offset=0.15,
+            z_offset=0.065,
+            width=0.064,
+            height=0.082,
+            head_scale=proportions.head_scale,
+            material=face_material,
+            front_offset=0.342,
+            rounded=True,
+        ),
+        _create_face_mark(
+            rig=rig,
+            prefix=prefix,
+            label="Brow_L",
+            x_offset=-0.15,
+            z_offset=0.18,
+            width=0.16,
+            height=0.020,
+            head_scale=proportions.head_scale,
+            material=face_material,
+            front_offset=0.338,
+        ),
+        _create_face_mark(
+            rig=rig,
+            prefix=prefix,
+            label="Brow_R",
+            x_offset=0.15,
+            z_offset=0.18,
+            width=0.16,
+            height=0.020,
+            head_scale=proportions.head_scale,
+            material=face_material,
+            front_offset=0.338,
         ),
         _create_face_mark(
             rig=rig,
             prefix=prefix,
             label="Mouth",
             x_offset=0.0,
-            z_offset=-0.12,
-            width=0.13,
-            height=0.025,
+            z_offset=-0.13,
+            width=0.12,
+            height=0.018,
             head_scale=proportions.head_scale,
             material=face_material,
+            front_offset=0.338,
         ),
     )
 
@@ -1092,6 +1332,12 @@ def build_character(
             head_scale=proportions.head_scale,
             material=hair_material,
         ),
+        *_create_hair_fringe(
+            rig=rig,
+            prefix=prefix,
+            head_scale=proportions.head_scale,
+            material=hair_material,
+        ),
     )
 
     outfit_parts = (
@@ -1101,7 +1347,7 @@ def build_character(
             bone_name="chest",
             label="Top",
             width=(
-                0.62
+                0.58
                 * proportions.shoulder_scale
             ),
             depth=(
@@ -1117,7 +1363,7 @@ def build_character(
             bone_name="spine",
             label="Mid",
             width=(
-                0.54
+                0.49
                 * proportions.torso_scale
             ),
             depth=(
@@ -1133,7 +1379,7 @@ def build_character(
             bone_name="pelvis",
             label="Lower",
             width=(
-                0.54
+                0.50
                 * proportions.hip_scale
             ),
             depth=(

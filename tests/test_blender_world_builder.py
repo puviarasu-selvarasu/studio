@@ -225,3 +225,45 @@ def test_world_builder_uses_lightweight_cube_geometry_only() -> None:
     ) == {
         "bpy.ops.mesh.primitive_cube_add",
     }
+
+def test_world_builder_visual_fidelity_v2_preserves_lightweight_geometry() -> None:
+    source = _source()
+
+    required = (
+        "StudioWorldBevel",
+        "min(dimensions)",
+        '"_Canopy_Roof"',
+        '"_Prop_station_bench_Back"',
+        "obj.rotation_euler[0]",
+    )
+
+    for token in required:
+        assert token in source
+
+    tree = ast.parse(
+        source
+    )
+
+    primitive_calls = {
+        node.func.attr
+        for node in ast.walk(
+            tree
+        )
+        if (
+            isinstance(
+                node,
+                ast.Call,
+            )
+            and isinstance(
+                node.func,
+                ast.Attribute,
+            )
+            and node.func.attr.startswith(
+                "primitive_"
+            )
+        )
+    }
+
+    assert primitive_calls == {
+        "primitive_cube_add",
+    }
