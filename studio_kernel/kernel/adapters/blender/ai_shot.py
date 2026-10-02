@@ -45,6 +45,9 @@ from kernel.adapters.blender.camera_direction import (
 from kernel.adapters.blender.character_builder import (
     build_character,
 )
+from kernel.adapters.blender.world_builder import (
+    build_world,
+)
 from kernel.adapters.blender.semantic_dispatcher import (
     compile_animation_scene,
     execute_animation_scene,
@@ -55,10 +58,15 @@ from kernel.characters.production import (
     CharacterProductionSpecError,
     character_production_from_json,
 )
+from kernel.worlds import (
+    WORLD_PRODUCTION_FILENAME,
+    WorldProductionSpec,
+    WorldProductionSpecError,
+    world_production_from_json,
+)
 from kernel.adapters.blender.deterministic_shot import (
     clear_scene,
     create_camera,
-    create_ground,
 )
 from kernel.adapters.blender.toolkit_level0 import (
     configure_timeline,
@@ -231,6 +239,30 @@ def load_character_production(
         ) from exc
 
 
+def load_world_production(
+    production_path: Path,
+) -> WorldProductionSpec:
+    """Load one separately bound trusted world-production contract."""
+
+    try:
+        raw_json = production_path.read_text(
+            encoding="utf-8"
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            "Unable to read world production contract: "
+            + str(exc)
+        ) from exc
+
+    try:
+        return world_production_from_json(
+            raw_json
+        )
+    except WorldProductionSpecError as exc:
+        raise RuntimeError(
+            "Invalid world production contract: "
+            + str(exc)
+        ) from exc
 def validate_character_production_binding(
     animation_scene: AnimationScene,
     production_spec: CharacterProductionSpec,
@@ -694,6 +726,7 @@ def build_ai_shot(
     animation_scene: AnimationScene,
     *,
     production_spec: CharacterProductionSpec,
+    world_production_spec: WorldProductionSpec,
     camera_plan: tuple[
         str,
         str,
@@ -721,7 +754,18 @@ def build_ai_shot(
         fps=FPS,
     )
 
-    ground = create_ground()
+    built_world = build_world(
+        world_production_spec
+    )
+
+    if not built_world.platform_parts:
+        raise RuntimeError(
+            "Production world did not create a platform surface."
+        )
+
+    ground = built_world.platform_parts[
+        0
+    ]
 
     camera = create_camera()
 
@@ -845,6 +889,11 @@ def main() -> None:
         / CHARACTER_PRODUCTION_FILENAME
     )
 
+    world_production_spec = load_world_production(
+        blend_path.parent
+        / WORLD_PRODUCTION_FILENAME
+    )
+
     camera_plan = (
         load_director_camera_plan(
             camera_plan_path,
@@ -863,11 +912,31 @@ def main() -> None:
     ) = build_ai_shot(
         animation_scene,
         production_spec=production_spec,
+        world_production_spec=world_production_spec,
         camera_plan=camera_plan,
     )
 
     print(
         "STUDIO_CHARACTER_PRODUCTION_EXECUTED_OK"
+    )
+
+    print(
+        "STUDIO_WORLD_PRODUCTION_EXECUTED_OK"
+    )
+
+    print(
+        "STUDIO_WORLD_ID="
+        + world_production_spec.world_id
+    )
+
+    print(
+        "STUDIO_LOCATION_ID="
+        + world_production_spec.location_id
+    )
+
+    print(
+        "STUDIO_LOCATION_VARIANT="
+        + world_production_spec.variant_id
     )
 
     configure_workbench_cel_preview(

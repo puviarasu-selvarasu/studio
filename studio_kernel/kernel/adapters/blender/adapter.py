@@ -12,6 +12,12 @@ from kernel.characters.production import (
     CharacterProductionSpecError,
     character_production_to_json,
 )
+from kernel.worlds import (
+    WORLD_PRODUCTION_FILENAME,
+    WorldProductionSpec,
+    WorldProductionSpecError,
+    world_production_to_json,
+)
 
 
 class BlenderAdapterError(RuntimeError):
@@ -221,6 +227,7 @@ class BlenderAdapter:
         output_directory: Path,
         *,
         character_production: CharacterProductionSpec,
+        world_production: WorldProductionSpec,
         camera_plan_path: Path | None = None,
     ) -> BlenderShotResult:
         """Execute trusted Animation IR in headless Blender."""
@@ -232,6 +239,15 @@ class BlenderAdapter:
             raise BlenderAdapterError(
                 "character_production must be "
                 "CharacterProductionSpec."
+            )
+
+        if not isinstance(
+            world_production,
+            WorldProductionSpec,
+        ):
+            raise BlenderAdapterError(
+                "world_production must be "
+                "WorldProductionSpec."
             )
 
         if not self._blender_executable.is_file():
@@ -284,6 +300,28 @@ class BlenderAdapter:
         ) as exc:
             raise BlenderAdapterError(
                 "Unable to persist character production contract: "
+                + str(exc)
+            ) from exc
+
+        world_production_path = (
+            output_directory
+            / WORLD_PRODUCTION_FILENAME
+        )
+
+        try:
+            world_production_path.write_text(
+                world_production_to_json(
+                    world_production
+                ),
+                encoding="utf-8",
+                newline="\n",
+            )
+        except (
+            OSError,
+            WorldProductionSpecError,
+        ) as exc:
+            raise BlenderAdapterError(
+                "Unable to write world production contract: "
                 + str(exc)
             ) from exc
 

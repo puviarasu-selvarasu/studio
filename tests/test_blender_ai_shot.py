@@ -122,6 +122,7 @@ def test_adapter_launches_ai_shot_script(
             ir_path,
             output,
             character_production=_phase7d_production_spec(),
+            world_production=_phase8g_world_spec(),
         )
 
     command = run_mock.call_args.args[0]
@@ -177,6 +178,7 @@ def test_adapter_rejects_missing_ir(
             tmp_path / "missing.json",
             tmp_path / "output",
             character_production=_phase7d_production_spec(),
+            world_production=_phase8g_world_spec(),
         )
 
 
@@ -243,6 +245,7 @@ def test_adapter_requires_ai_success_marker(
                 ir_path,
                 tmp_path / "output",
                 character_production=_phase7d_production_spec(),
+                world_production=_phase8g_world_spec(),
             )
 
 def test_ai_shot_accepts_trusted_director_camera_plan() -> None:
@@ -342,6 +345,7 @@ def test_adapter_passes_director_camera_plan(
             output,
             camera_plan_path=camera_path,
             character_production=_phase7d_production_spec(),
+            world_production=_phase8g_world_spec(),
         )
 
     assert result.blend_path.is_file()
@@ -378,6 +382,7 @@ def test_adapter_rejects_missing_director_camera_plan(
                 / "missing_camera.json"
             ),
             character_production=_phase7d_production_spec(),
+            world_production=_phase8g_world_spec(),
         )
 
 
@@ -452,6 +457,7 @@ def test_adapter_requires_director_camera_execution_marker(
                 tmp_path / "output",
                 camera_plan_path=camera_path,
                 character_production=_phase7d_production_spec(),
+                world_production=_phase8g_world_spec(),
             )
 
 def test_ai_shot_integrates_visual_style_execution() -> None:
@@ -509,6 +515,25 @@ def test_ai_shot_reports_integrated_visual_style_markers() -> None:
     assert "exec(" not in source
 
 
+def _phase8g_world_spec():
+    from kernel.application.world_production_service import (
+        WorldProductionService,
+    )
+
+    return (
+        WorldProductionService()
+        .compile_selection(
+            "studio_world",
+            "old_station",
+            "default",
+            prop_selections=(
+                (
+                    "station_bench",
+                    "default",
+                ),
+            ),
+        )
+    )
 def _phase7d_production_spec():
     from kernel.characters import (
         MOMO_DEFAULT_VARIANT,
@@ -603,4 +628,99 @@ def test_ai_shot_retargets_camera_to_character_focus() -> None:
     assert (
         "production_spec.production_profile_id"
         in source
+    )
+
+def test_ai_shot_uses_trusted_world_production_builder() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "load_world_production" in source
+    assert "WORLD_PRODUCTION_FILENAME" in source
+    assert "build_world(" in source
+
+    assert (
+        "world_production_spec: WorldProductionSpec"
+        in source
+    )
+
+    assert (
+        "STUDIO_WORLD_PRODUCTION_EXECUTED_OK"
+        in source
+    )
+
+    assert "create_ground(" not in source
+
+    assert (
+        "create_layered_2_5d_background("
+        in source
+    )
+
+
+def test_ai_shot_adapter_requires_explicit_world_production_spec() -> None:
+    import inspect
+
+    from kernel.adapters.blender.adapter import (
+        BlenderAdapter,
+    )
+
+    signature = inspect.signature(
+        BlenderAdapter.create_ai_shot
+    )
+
+    parameter = signature.parameters[
+        "world_production"
+    ]
+
+    assert (
+        parameter.kind
+        is inspect.Parameter.KEYWORD_ONLY
+    )
+
+    assert (
+        parameter.default
+        is inspect.Parameter.empty
+    )
+
+
+def test_adapter_serializes_world_production_manifest() -> None:
+    adapter_source = (
+        ROOT
+        / "studio_kernel"
+        / "kernel"
+        / "adapters"
+        / "blender"
+        / "adapter.py"
+    ).read_text(
+        encoding="utf-8"
+    )
+
+    assert "WORLD_PRODUCTION_FILENAME" in adapter_source
+
+    assert (
+        "world_production_to_json"
+        in adapter_source
+    )
+
+    assert (
+        "world_production: WorldProductionSpec"
+        in adapter_source
+    )
+
+
+def test_world_production_remains_separate_from_animation_ir() -> None:
+    source = AI_SHOT.read_text(
+        encoding="utf-8"
+    )
+
+    assert "world_production_spec" in source
+
+    assert (
+        "validate_character_production_binding("
+        in source
+    )
+
+    assert (
+        "validate_world_production_binding("
+        not in source
     )
