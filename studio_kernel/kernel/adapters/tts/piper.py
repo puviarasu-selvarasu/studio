@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -174,6 +175,12 @@ class PiperTTSAdapter:
                 ),
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                env={
+                    **os.environ,
+                    "PYTHONIOENCODING": "utf-8",
+                    "PYTHONUTF8": "1",
+                },
                 timeout=(
                     self._timeout_seconds
                 ),

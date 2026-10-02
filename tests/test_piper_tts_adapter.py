@@ -93,6 +93,8 @@ def test_piper_adapter_uses_argument_list_and_stdin_without_shell(
         input: str,
         capture_output: bool,
         text: bool,
+        encoding: str,
+        env: dict[str, str],
         timeout: float,
         check: bool,
         shell: bool,
@@ -258,6 +260,8 @@ def test_piper_adapter_supports_trusted_multi_speaker_id(
         input: str,
         capture_output: bool,
         text: bool,
+        encoding: str,
+        env: dict[str, str],
         timeout: float,
         check: bool,
         shell: bool,
@@ -349,3 +353,14 @@ def test_piper_adapter_rejects_negative_speaker_id(
             model,
             speaker_id=-1,
         )
+
+def test_piper_adapter_forces_utf8_in_child_process() -> None:
+    source = Path(
+        piper_module.__file__
+    ).read_text(
+        encoding="utf-8"
+    )
+
+    assert 'encoding="utf-8"' in source
+    assert '"PYTHONIOENCODING": "utf-8"' in source
+    assert '"PYTHONUTF8": "1"' in source

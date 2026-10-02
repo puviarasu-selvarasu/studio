@@ -10,6 +10,9 @@ from __future__ import annotations
 from kernel.ports.llm import (
     LLMPort,
 )
+from kernel.languages import (
+    get_language_identity,
+)
 from kernel.voices import (
     VoicePerformanceParseError,
     VoicePerformancePlan,
@@ -132,6 +135,7 @@ class VoiceActorAgent:
         character_id: str,
         voice_id: str,
         direction: str = "",
+        performance_language_code: str | None = None,
     ) -> VoicePerformancePlan:
         """Generate and validate one voice-performance plan."""
 
@@ -185,6 +189,30 @@ class VoiceActorAgent:
                 + normalized_voice
             )
 
+        effective_language_code = (
+            identity.language_code
+        )
+
+        if (
+            performance_language_code
+            is not None
+        ):
+            language = get_language_identity(
+                performance_language_code
+            )
+
+            if language is None:
+                raise VoiceActorAgentError(
+                    "Unsupported performance language: "
+                    + str(
+                        performance_language_code
+                    )
+                )
+
+            effective_language_code = (
+                language.language_code
+            )
+
         traits = ", ".join(
             identity.traits
         )
@@ -199,7 +227,7 @@ class VoiceActorAgent:
 Scene ID: {normalized_scene}
 Character ID: {normalized_character}
 Voice ID: {normalized_voice}
-Voice language: {identity.language_code}
+Voice language: {effective_language_code}
 Voice traits: {traits}
 
 Dialogue:
